@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Silent Aim + ESP + No Recoil + Smooth POV
+-- MINEHUB  |  Neon Edition
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -21,8 +21,8 @@ local CONFIG = {
     MaxSmooth  = 400,
     TeamCheck  = true,
     AimPart    = "Head",
-    ESPColor   = Color3.fromRGB(80, 180, 255),
-    Accent     = Color3.fromRGB(80, 180, 255),
+    ESPColor   = Color3.fromRGB(255, 0, 150),
+    Accent     = Color3.fromRGB(255, 0, 150),
 }
 
 local function createMenu()
@@ -37,72 +37,64 @@ local function createMenu()
 
     local main = Instance.new("Frame")
     main.Name = "Main"
-    main.Size = UDim2.new(0, 420, 0, 300)
-    main.Position = UDim2.new(0.5, -210, 0.5, -150)
-    main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    main.Size = UDim2.new(0, 260, 0, 200)
+    main.Position = UDim2.new(0.5, -130, 0.5, -100)
+    main.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
     main.BorderSizePixel = 0
     main.ClipsDescendants = true
     main.Parent = gui
 
     local corner = Instance.new("UICorner", main)
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 10)
 
     local stroke = Instance.new("UIStroke", main)
     stroke.Color = CONFIG.Accent
-    stroke.Thickness = 1
-    stroke.Transparency = 0.3
-
+    stroke.Thickness = 2
+    stroke.Transparency = 0.1
+    
     local glow = Instance.new("ImageLabel", main)
-    glow.Name = "Glow"
     glow.BackgroundTransparency = 1
-    glow.Size = UDim2.new(1, 80, 1, 80)
-    glow.Position = UDim2.new(0, -40, 0, -40)
+    glow.Size = UDim2.new(1, 40, 1, 40)
+    glow.Position = UDim2.new(0, -20, 0, -20)
     glow.Image = "rbxassetid://5028857472"
     glow.ImageColor3 = CONFIG.Accent
-    glow.ImageTransparency = 0.85
-    glow.ZIndex = 0
+    glow.ImageTransparency = 0.5
+    glow.ZIndex = -1
+    glow.Parent = main
 
-    TweenService:Create(glow, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        ImageTransparency = 0.95,
-        Rotation = 180,
+    TweenService:Create(glow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+        ImageTransparency = 0.8,
+        Size = UDim2.new(1, 60, 1, 60),
+        Position = UDim2.new(0, -30, 0, -30)
     }):Play()
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-    title.BorderSizePixel = 0
-    title.Text = "  MINEHUB"
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundTransparency = 1
+    title.Text = "MINEHUB"
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 16
-    title.TextColor3 = CONFIG.Accent
-    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextSize = 14
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Parent = main
 
-    local accent = Instance.new("Frame", title)
-    accent.Size = UDim2.new(0, 4, 1, 0)
-    accent.BackgroundColor3 = CONFIG.Accent
-    accent.BorderSizePixel = 0
-
     local tabs = Instance.new("Frame")
-    tabs.Size = UDim2.new(1, 0, 0, 32)
-    tabs.Position = UDim2.new(0, 0, 0, 40)
-    tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
-    tabs.BorderSizePixel = 0
+    tabs.Size = UDim2.new(1, -20, 0, 25)
+    tabs.Position = UDim2.new(0, 10, 0, 30)
+    tabs.BackgroundTransparency = 1
     tabs.Parent = main
 
     local tabBar = Instance.new("Frame", tabs)
-    tabBar.Size = UDim2.new(1, -20, 0, 32)
-    tabBar.Position = UDim2.new(0, 10, 0, 0)
+    tabBar.Size = UDim2.new(1, 0, 1, 0)
     tabBar.BackgroundTransparency = 1
 
     local tabList = Instance.new("UIListLayout", tabBar)
     tabList.FillDirection = Enum.FillDirection.Horizontal
-    tabList.Padding = UDim.new(0, 8)
+    tabList.Padding = UDim.new(0, 5)
     tabList.VerticalAlignment = Enum.VerticalAlignment.Center
 
     local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -20, 1, -92)
-    content.Position = UDim2.new(0, 10, 0, 80)
+    content.Size = UDim2.new(1, -20, 1, -65)
+    content.Position = UDim2.new(0, 10, 0, 60)
     content.BackgroundTransparency = 1
     content.ClipsDescendants = true
     content.Parent = main
@@ -116,7 +108,7 @@ local function createMenu()
         page.Size = UDim2.new(1, 0, 1, 0)
         page.BackgroundTransparency = 1
         page.BorderSizePixel = 0
-        page.ScrollBarThickness = 3
+        page.ScrollBarThickness = 2
         page.ScrollBarImageColor3 = CONFIG.Accent
         page.CanvasSize = UDim2.new(0, 0, 0, 0)
         page.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -124,7 +116,7 @@ local function createMenu()
         page.Parent = content
 
         local list = Instance.new("UIListLayout", page)
-        list.Padding = UDim.new(0, 8)
+        list.Padding = UDim.new(0, 6)
         list.SortOrder = Enum.SortOrder.LayoutOrder
 
         pages[name] = page
@@ -133,41 +125,20 @@ local function createMenu()
 
     local function makeTab(name)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, 80, 1, 0)
-        btn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+        btn.Size = UDim2.new(0.3, -4, 1, 0)
+        btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
         btn.BorderSizePixel = 0
         btn.Text = name
         btn.Font = Enum.Font.GothamMedium
-        btn.TextSize = 12
-        btn.TextColor3 = Color3.fromRGB(140, 140, 150)
+        btn.TextSize = 11
+        btn.TextColor3 = Color3.fromRGB(150, 150, 150)
         btn.AutoButtonColor = false
         btn.Parent = tabBar
 
         local btnCorner = Instance.new("UICorner", btn)
-        btnCorner.CornerRadius = UDim.new(0, 6)
-
-        local underline = Instance.new("Frame", btn)
-        underline.Size = UDim2.new(0, 0, 0, 2)
-        underline.Position = UDim2.new(0.5, 0, 1, -3)
-        underline.BackgroundColor3 = CONFIG.Accent
-        underline.BorderSizePixel = 0
+        btnCorner.CornerRadius = UDim.new(0, 4)
 
         local page = newPage(name)
-
-        btn.MouseEnter:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.15), {
-                BackgroundColor3 = Color3.fromRGB(30, 30, 40),
-                TextColor3 = Color3.fromRGB(220, 220, 220),
-            }):Play()
-        end)
-        btn.MouseLeave:Connect(function()
-            if activeTab ~= name then
-                TweenService:Create(btn, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(20, 20, 28),
-                    TextColor3 = Color3.fromRGB(140, 140, 150),
-                }):Play()
-            end
-        end)
 
         btn.MouseButton1Click:Connect(function()
             if activeTab == name then return end
@@ -177,21 +148,11 @@ local function createMenu()
                 if child:IsA("TextButton") then
                     local isActive = (child.Text == name)
                     TweenService:Create(child, TweenInfo.new(0.2), {
-                        BackgroundColor3 = isActive and Color3.fromRGB(30, 40, 52) or Color3.fromRGB(20, 20, 28),
-                        TextColor3 = isActive and CONFIG.Accent or Color3.fromRGB(140, 140, 150),
+                        BackgroundColor3 = isActive and Color3.fromRGB(25, 25, 25) or Color3.fromRGB(15, 15, 15),
+                        TextColor3 = isActive and CONFIG.Accent or Color3.fromRGB(150, 150, 150),
                     }):Play()
-                    local u = child:FindFirstChildOfClass("Frame")
-                    if u then
-                        TweenService:Create(u, TweenInfo.new(0.25, Enum.EasingStyle.Quint), {
-                            Size = isActive and UDim2.new(0.7, 0, 0, 2) or UDim2.new(0, 0, 0, 2),
-                        }):Play()
-                    end
                 end
             end
-            page.Position = UDim2.new(0, 20, 0, 0)
-            TweenService:Create(page, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 0, 0, 0),
-            }):Play()
         end)
 
         return page
@@ -199,36 +160,36 @@ local function createMenu()
 
     local function makeToggle(parent, label, configKey)
         local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, -8, 0, 40)
-        row.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+        row.Size = UDim2.new(1, 0, 0, 30)
+        row.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
         row.BorderSizePixel = 0
         row.Parent = parent
         local rCorner = Instance.new("UICorner", row)
-        rCorner.CornerRadius = UDim.new(0, 8)
+        rCorner.CornerRadius = UDim.new(0, 6)
 
         local labelObj = Instance.new("TextLabel")
-        labelObj.Size = UDim2.new(1, -70, 1, 0)
-        labelObj.Position = UDim2.new(0, 14, 0, 0)
+        labelObj.Size = UDim2.new(1, -50, 1, 0)
+        labelObj.Position = UDim2.new(0, 10, 0, 0)
         labelObj.BackgroundTransparency = 1
         labelObj.Text = label
-        labelObj.Font = Enum.Font.GothamMedium
-        labelObj.TextSize = 13
+        labelObj.Font = Enum.Font.Gotham
+        labelObj.TextSize = 12
         labelObj.TextColor3 = Color3.fromRGB(220, 220, 220)
         labelObj.TextXAlignment = Enum.TextXAlignment.Left
         labelObj.Parent = row
 
         local knob = Instance.new("Frame")
-        knob.Size = UDim2.new(0, 44, 0, 22)
-        knob.Position = UDim2.new(1, -58, 0.5, -11)
-        knob.BackgroundColor3 = CONFIG[configKey] and Color3.fromRGB(50, 140, 220) or Color3.fromRGB(45, 45, 55)
+        knob.Size = UDim2.new(0, 30, 0, 14)
+        knob.Position = UDim2.new(1, -40, 0.5, -7)
+        knob.BackgroundColor3 = CONFIG[configKey] and CONFIG.Accent or Color3.fromRGB(40, 40, 40)
         knob.BorderSizePixel = 0
         knob.Parent = row
         local kCorner = Instance.new("UICorner", knob)
         kCorner.CornerRadius = UDim.new(1, 0)
 
         local pill = Instance.new("Frame", knob)
-        pill.Size = UDim2.new(0, 16, 0, 16)
-        pill.Position = CONFIG[configKey] and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+        pill.Size = UDim2.new(0, 10, 0, 10)
+        pill.Position = CONFIG[configKey] and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
         pill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         pill.BorderSizePixel = 0
         local pCorner = Instance.new("UICorner", pill)
@@ -243,39 +204,39 @@ local function createMenu()
         click.MouseButton1Click:Connect(function()
             CONFIG[configKey] = not CONFIG[configKey]
             local on = CONFIG[configKey]
-            TweenService:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-                BackgroundColor3 = on and Color3.fromRGB(50, 140, 220) or Color3.fromRGB(45, 45, 55),
+            TweenService:Create(knob, TweenInfo.new(0.15, Enum.EasingStyle.Quint), {
+                BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(40, 40, 40),
             }):Play()
-            TweenService:Create(pill, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-                Position = on and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8),
+            TweenService:Create(pill, TweenInfo.new(0.15, Enum.EasingStyle.Quint), {
+                Position = on and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5),
             }):Play()
         end)
     end
 
     local function makeSlider(parent, label, configKey, min, max, step)
         local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, -8, 0, 54)
-        row.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+        row.Size = UDim2.new(1, 0, 0, 36)
+        row.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
         row.BorderSizePixel = 0
         row.Parent = parent
         local rCorner = Instance.new("UICorner", row)
-        rCorner.CornerRadius = UDim.new(0, 8)
+        rCorner.CornerRadius = UDim.new(0, 6)
 
         local labelObj = Instance.new("TextLabel")
-        labelObj.Size = UDim2.new(1, -20, 0, 22)
-        labelObj.Position = UDim2.new(0, 14, 0, 4)
+        labelObj.Size = UDim2.new(1, -20, 0, 16)
+        labelObj.Position = UDim2.new(0, 10, 0, 4)
         labelObj.BackgroundTransparency = 1
         labelObj.Text = label .. ": " .. tostring(CONFIG[configKey])
-        labelObj.Font = Enum.Font.GothamMedium
-        labelObj.TextSize = 13
-        labelObj.TextColor3 = Color3.fromRGB(220, 220, 220)
+        labelObj.Font = Enum.Font.Gotham
+        labelObj.TextSize = 11
+        labelObj.TextColor3 = Color3.fromRGB(200, 200, 200)
         labelObj.TextXAlignment = Enum.TextXAlignment.Left
         labelObj.Parent = row
 
         local bar = Instance.new("Frame")
-        bar.Size = UDim2.new(1, -28, 0, 5)
-        bar.Position = UDim2.new(0, 14, 0, 38)
-        bar.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        bar.Size = UDim2.new(1, -20, 0, 3)
+        bar.Position = UDim2.new(0, 10, 0, 26)
+        bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         bar.BorderSizePixel = 0
         bar.Parent = row
         local bCorner = Instance.new("UICorner", bar)
@@ -289,8 +250,8 @@ local function createMenu()
         fCorner.CornerRadius = UDim.new(1, 0)
 
         local hit = Instance.new("TextButton")
-        hit.Size = UDim2.new(1, 0, 3, 0)
-        hit.Position = UDim2.new(0, 0, 0.5, -1.5)
+        hit.Size = UDim2.new(1, 0, 4, 0)
+        hit.Position = UDim2.new(0, 0, 0.5, -2)
         hit.BackgroundTransparency = 1
         hit.Text = ""
         hit.Parent = bar
@@ -302,7 +263,7 @@ local function createMenu()
             val = math.floor(val / step + 0.5) * step
             CONFIG[configKey] = val
             labelObj.Text = label .. ": " .. tostring(val)
-            TweenService:Create(fill, TweenInfo.new(0.1), { Size = UDim2.new(rel, 0, 1, 0) }):Play()
+            fill.Size = UDim2.new(rel, 0, 1, 0)
         end
 
         hit.MouseButton1Down:Connect(function() dragging = true; setFromX(UserInput:GetMouseLocation().X) end)
@@ -317,7 +278,6 @@ local function createMenu()
     local aimPage = makeTab("Aim")
     makeToggle(aimPage, "Silent Aim", "SilentAim")
     makeToggle(aimPage, "Smooth POV", "SmoothPOV")
-    makeToggle(aimPage, "Team Check", "TeamCheck")
     makeSlider(aimPage, "FOV", "FOV", 20, 400, 5)
     makeSlider(aimPage, "Smoothness", "Smoothness", 0.01, 0.6, 0.01)
 
@@ -326,6 +286,7 @@ local function createMenu()
 
     local miscPage = makeTab("Misc")
     makeToggle(miscPage, "No Recoil", "NoRecoil")
+    makeToggle(miscPage, "Team Check", "TeamCheck")
 
     tabBar:GetChildren()[1].MouseButton1Click:Fire()
 
@@ -348,8 +309,8 @@ local function createMenu()
     end)
 
     main.Size = UDim2.new(0, 0, 0, 0)
-    TweenService:Create(main, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 420, 0, 300),
+    TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 260, 0, 200),
     }):Play()
 
     return gui
@@ -362,7 +323,6 @@ espFolder.Name = "MINEHUB_ESP"
 espFolder.Parent = CoreGui
 
 local boxes = {}
-
 local function makeBox(player)
     local char = player.Character
     if not char then return end
@@ -448,4 +408,4 @@ RunService:BindToRenderStep("MINEHUB_NoRecoil", Enum.RenderPriority.Camera.Value
     Camera.CFrame = CFrame.new(Camera.CFrame.Position) * rot
 end)
 
-print("[MINEHUB] loaded.")
+print("[MINEHUB] Neon UI loaded.")
