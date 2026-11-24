@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Solara-Safe Ultimate Edition
+-- MINEHUB  |  Sticky RMB Aimbot + ESP + Wallbang
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -16,11 +16,9 @@ local CONFIG = {
     ESP        = true,
     NoRecoil   = true,
     Wallbang   = true,
-    VehicleNuke = true,
-    AimKey     = Enum.KeyCode.K,
-    NukeKey    = Enum.KeyCode.V,
+    AimKey     = Enum.UserInputType.MouseButton2, -- RMB
     FOV        = 150,
-    Smoothness = 0.25, 
+    Smoothness = 0.45, -- Super sticky
     MaxDist    = 500, 
     TeamCheck  = true,
     AimPart    = "Head",
@@ -30,7 +28,7 @@ local CONFIG = {
 }
 
 -- ============================================================
--- SAFE ROBLOX ESP (Team Colors)
+-- SAFE ESP (Team Colors)
 -- ============================================================
 pcall(function()
     local espFolder = Instance.new("Folder")
@@ -60,20 +58,18 @@ pcall(function()
         espTable[player] = box
     end
 
-    local function removeESP(player)
-        if espTable[player] then
-            espTable[player]:Destroy()
-            espTable[player] = nil
-        end
-    end
-
     Players.PlayerAdded:Connect(function(p)
         p.CharacterAdded:Connect(function() 
             task.wait(1) 
             if CONFIG.ESP then createESP(p) end 
         end)
     end)
-    Players.PlayerRemoving:Connect(removeESP)
+    Players.PlayerRemoving:Connect(function(p)
+        if espTable[p] then
+            espTable[p]:Destroy()
+            espTable[p] = nil
+        end
+    end)
 
     task.spawn(function()
         while task.wait(1) do
@@ -81,7 +77,10 @@ pcall(function()
                 if p ~= LocalPlayer and p.Character and CONFIG.ESP then
                     if not espTable[p] then createESP(p) end
                 elseif not CONFIG.ESP then
-                    removeESP(p)
+                    if espTable[p] then
+                        espTable[p]:Destroy()
+                        espTable[p] = nil
+                    end
                 end
             end
         end
@@ -89,9 +88,9 @@ pcall(function()
 end)
 
 -- ============================================================
--- UI MENU (Always runs first so it never dies)
+-- MENU
 -- ============================================================
-local function createMenu()
+pcall(function()
     local existing = CoreGui:FindFirstChild("MINEHUB")
     if existing then existing:Destroy() end
 
@@ -101,8 +100,8 @@ local function createMenu()
     gui.Parent = CoreGui
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 260, 0, 230)
-    main.Position = UDim2.new(0.5, -130, 0.5, -115)
+    main.Size = UDim2.new(0, 260, 0, 210)
+    main.Position = UDim2.new(0.5, -130, 0.5, -105)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -145,10 +144,8 @@ local function createMenu()
     local tabBar = Instance.new("Frame", tabs)
     tabBar.Size = UDim2.new(1, 0, 1, 0)
     tabBar.BackgroundTransparency = 1
-
-    local tabList = Instance.new("UIListLayout", tabBar)
-    tabList.FillDirection = Enum.FillDirection.Horizontal
-    tabList.Padding = UDim.new(0, 5)
+    Instance.new("UIListLayout", tabBar).FillDirection = Enum.FillDirection.Horizontal
+    Instance.new("UIListLayout", tabBar).Padding = UDim.new(0, 5)
 
     local content = Instance.new("Frame")
     content.Size = UDim2.new(1, -20, 1, -70)
@@ -164,12 +161,10 @@ local function createMenu()
         page.BackgroundTransparency = 1
         page.BorderSizePixel = 0
         page.ScrollBarThickness = 2
-        page.ScrollBarImageColor3 = CONFIG.Accent
         page.AutomaticCanvasSize = Enum.AutomaticSize.Y
         page.Visible = false
         page.Parent = content
-        local list = Instance.new("UIListLayout", page)
-        list.Padding = UDim.new(0, 6)
+        Instance.new("UIListLayout", page).Padding = UDim.new(0, 6)
         pages[name] = page
         return page
     end
@@ -246,75 +241,16 @@ local function createMenu()
         end)
     end
 
-    local function makeSlider(parent, label, configKey, min, max, step)
-        local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, 0, 0, 36)
-        row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        row.Parent = parent
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
-
-        local labelObj = Instance.new("TextLabel")
-        labelObj.Size = UDim2.new(1, -20, 0, 16)
-        labelObj.Position = UDim2.new(0, 10, 0, 4)
-        labelObj.BackgroundTransparency = 1
-        labelObj.Text = label .. ": " .. tostring(CONFIG[configKey])
-        labelObj.Font = Enum.Font.Gotham
-        labelObj.TextSize = 11
-        labelObj.TextColor3 = Color3.fromRGB(200, 200, 200)
-        labelObj.TextXAlignment = Enum.TextXAlignment.Left
-        labelObj.Parent = row
-
-        local bar = Instance.new("Frame")
-        bar.Size = UDim2.new(1, -20, 0, 3)
-        bar.Position = UDim2.new(0, 10, 0, 26)
-        bar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        bar.Parent = row
-        Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
-
-        local fill = Instance.new("Frame", bar)
-        fill.BackgroundColor3 = CONFIG.Accent
-        fill.Size = UDim2.new((CONFIG[configKey] - min) / (max - min), 0, 1, 0)
-        Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-        local hit = Instance.new("TextButton")
-        hit.Size = UDim2.new(1, 0, 4, 0)
-        hit.Position = UDim2.new(0, 0, 0.5, -2)
-        hit.BackgroundTransparency = 1
-        hit.Text = ""
-        hit.Parent = bar
-
-        local dragging = false
-        local function setFromX(x)
-            local rel = math.clamp((x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-            local val = min + (max - min) * rel
-            val = math.floor(val / step + 0.5) * step
-            CONFIG[configKey] = val
-            labelObj.Text = label .. ": " .. tostring(val)
-            fill.Size = UDim2.new(rel, 0, 1, 0)
-        end
-
-        hit.MouseButton1Down:Connect(function() dragging = true; setFromX(UserInput:GetMouseLocation().X) end)
-        UserInput.InputChanged:Connect(function(input)
-            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then setFromX(input.Position.X) end
-        end)
-        UserInput.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-        end)
-    end
-
     local aimPage = makeTab("Aim")
-    makeToggle(aimPage, "Silent Aim", "SilentAim")
-    makeToggle(aimPage, "Camera Aimbot", "Aimbot")
-    makeToggle(aimPage, "Wallbang", "Wallbang")
-    makeSlider(aimPage, "FOV", "FOV", 50, 500, 10)
-    makeSlider(aimPage, "Smoothness", "Smoothness", 0.05, 0.8, 0.05)
+    makeToggle(aimPage, "Camera Aimbot (RMB)", "Aimbot")
+    makeToggle(aimPage, "Silent Aim (RMB)", "SilentAim")
+    makeToggle(aimPage, "Wallbang (RMB)", "Wallbang")
 
     local visPage = makeTab("Visual")
     makeToggle(visPage, "ESP", "ESP")
 
     local miscPage = makeTab("Misc")
     makeToggle(miscPage, "No Recoil", "NoRecoil")
-    makeToggle(miscPage, "Vehicle Nuke [V]", "VehicleNuke")
     makeToggle(miscPage, "Team Check", "TeamCheck")
 
     tabBar:GetChildren()[1].MouseButton1Click:Fire()
@@ -343,54 +279,15 @@ local function createMenu()
             gui.Enabled = not gui.Enabled
         end
     end)
+end)
+
+-- ============================================================
+-- SAFE AIMBOT & SILENT AIM & WALLBANG
+-- ============================================================
+local function isAiming()
+    return UserInput:IsMouseButtonPressed(CONFIG.AimKey)
 end
-pcall(createMenu)
 
--- ============================================================
--- SAFE WALLBANG (Using __namecall)
--- ============================================================
-pcall(function()
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
-        if not checkcaller() and CONFIG.Wallbang and (method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") then
-            local args = {...}
-            if method == "Raycast" then
-                local params = args[3]
-                if typeof(params) == "RaycastParams" then
-                    params.FilterType = Enum.RaycastFilterType.Exclude
-                    params.FilterDescendantsInstances = {Workspace.CurrentCamera, LocalPlayer.Character}
-                end
-            elseif method:find("FindPartOnRay") then
-                args[2] = {Workspace.CurrentCamera, LocalPlayer.Character}
-            end
-            return oldNamecall(self, table.unpack(args))
-        end
-        return oldNamecall(self, ...)
-    end)
-end)
-
--- ============================================================
--- VEHICLE NUKE [V]
--- ============================================================
-UserInput.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.V and CONFIG.VehicleNuke then
-        local ray = Ray.new(Camera.CFrame.Position, Camera.CFrame.LookVector * 500)
-        local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, Workspace.CurrentCamera})
-        if hit then
-            local model = hit:FindFirstAncestorOfClass("Model")
-            if model then
-                model:BreakJoints()
-                if model.Destroy then model:Destroy() end
-            end
-        end
-    end
-end)
-
--- ============================================================
--- AIMBOT & SILENT AIM
--- ============================================================
 local function getClosestTarget()
     local best, bestDist = nil, CONFIG.FOV
     local center = Camera.ViewportSize / 2
@@ -417,19 +314,40 @@ local function getClosestTarget()
 end
 
 pcall(function()
+    -- Silent Aim Hook
     local mouse = LocalPlayer:GetMouse()
     local oldIndex
     oldIndex = hookmetamethod(game, "__index", function(self, key)
-        if CONFIG.SilentAim and self == mouse and (key == "Hit" or key == "Target") then
+        if CONFIG.SilentAim and isAiming() and self == mouse and (key == "Hit" or key == "Target") then
             local t = getClosestTarget()
             if t then return t.Position end
         end
         return oldIndex(self, key)
     end)
+
+    -- Wallbang Hook
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        if not checkcaller() and CONFIG.Wallbang and isAiming() and (method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") then
+            local args = {...}
+            if method == "Raycast" then
+                local params = args[3]
+                if typeof(params) == "RaycastParams" then
+                    params.FilterType = Enum.RaycastFilterType.Exclude
+                    params.FilterDescendantsInstances = {Workspace.CurrentCamera, LocalPlayer.Character}
+                end
+            elseif method:find("FindPartOnRay") then
+                args[2] = {Workspace.CurrentCamera, LocalPlayer.Character}
+            end
+            return oldNamecall(self, table.unpack(args))
+        end
+        return oldNamecall(self, ...)
+    end)
 end)
 
 RunService.RenderStepped:Connect(function(dt)
-    if CONFIG.Aimbot and UserInput:IsKeyDown(CONFIG.AimKey) then
+    if CONFIG.Aimbot and isAiming() then
         local target = getClosestTarget()
         if target then
             local camPos = Camera.CFrame.Position
@@ -442,10 +360,10 @@ RunService.RenderStepped:Connect(function(dt)
     if CONFIG.NoRecoil then
         local rot = Camera.CFrame - Camera.CFrame.Position
         local rx, ry, rz = rot:ToEulerAnglesXYZ()
-        if not UserInput:IsKeyDown(CONFIG.AimKey) then
+        if not isAiming() then
             Camera.CFrame = CFrame.new(Camera.CFrame.Position) * CFrame.Angles(0, ry, 0)
         end
     end
 end)
 
-print("[MINEHUB] Solara-Safe Ultimate loaded.")
+print("[MINEHUB] Sticky RMB Aimbot Loaded. Hold [RMB] to aim, [RightShift] to toggle menu.")
