@@ -1,4 +1,4 @@
---[[ MINEHUB :: VOXEL WARS (Tabbed UI) ]]
+--[[ MINEHUB :: VOXEL WARS (Silent Magic + Skeleton) ]]
 print("[MINEHUB] Loaded. Type ;menu to open.")
 
 local Players    = game:GetService("Players")
@@ -10,20 +10,15 @@ local LP         = Players.LocalPlayer
 local Cam        = Workspace.CurrentCamera
 
 local CONFIG = {
-    -- Aim
-    Aimbot       = true,
-    AimPart      = "Head",
-    FOV          = 250,
-    TeamCheck    = true,
-    -- Visual
-    BoxESP       = true,
     SkeletonESP  = true,
-    ESPColor     = Color3.fromRGB(255, 40, 40),
-    -- Misc
     NoRecoil     = true,
     LongRange    = true,
-    BringAll     = false,
-    -- Config
+    SilentAim    = true,
+    TeamCheck    = true,
+    AimPart      = "Head",
+    FOV          = 400,
+    EnemyColor   = Color3.fromRGB(255, 0, 0),   -- Red
+    TeamColor    = Color3.fromRGB(0, 150, 255), -- Blue
     Accent       = Color3.fromRGB(255, 0, 150),
 }
 
@@ -38,16 +33,12 @@ fov.Filled = false
 RunService.RenderStepped:Connect(function()
     fov.Position = Cam.ViewportSize / 2
     fov.Radius = CONFIG.FOV
-    fov.Visible = CONFIG.Aimbot
+    fov.Visible = CONFIG.SilentAim
 end)
 
 -- ============================================================
 -- TARGETING
 -- ============================================================
-local function isAiming()
-    return UserInput:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
-end
-
 local function getTarget()
     local best, bestDist = nil, CONFIG.FOV
     local center = Cam.ViewportSize / 2
@@ -74,45 +65,61 @@ local function getTarget()
 end
 
 -- ============================================================
--- AIMBOT (Hold RMB)
+-- SILENT AIM + MAGIC BULLET (Wrapped in pcall for Solara safety)
 -- ============================================================
-RunService.RenderStepped:Connect(function()
-    if CONFIG.Aimbot and isAiming() then
-        local t = getTarget()
-        if t then
-            Cam.CFrame = CFrame.new(Cam.CFrame.Position, t.Position)
-        end
-    end
-end)
+local hookSuccess = pcall(function()
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        if checkcaller() then return oldNamecall(self, ...) end
 
--- ============================================================
--- BRING ALL
--- ============================================================
-RunService.Heartbeat:Connect(function()
-    if not CONFIG.BringAll then return end
-    local myChar = LP.Character
-    if not myChar then return end
-    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-    
-    local offset = 0
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LP and (not CONFIG.TeamCheck or p.Team ~= LP.Team) then
-            local char = p.Character
-            if char then
-                local root = char:FindFirstChild("HumanoidRootPart")
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if root and hum and hum.Health > 0 then
-                    root.CFrame = myRoot.CFrame * CFrame.new(math.cos(offset) * 5, 0, math.sin(offset) * 5)
-                    offset = offset + (math.pi * 2 / #Players:GetPlayers())
+        if method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" then
+            local args = {...}
+            if CONFIG.SilentAim then
+                local t = getTarget()
+                if t then
+                    if method == "Raycast" then
+                        local origin = args[1]
+                        local dir = args[2]
+                        args[2] = (t.Position - origin).Unit * dir.Magnitude
+                        args[3] = args[3] or RaycastParams.new()
+                        args[3].FilterType = Enum.RaycastFilterType.Exclude
+                        args[3].FilterDescendantsInstances = {LP.Character, Cam}
+                    else
+                        local ray = args[1]
+                        args[1] = Ray.new(ray.Origin, (t.Position - ray.Origin).Unit * ray.Direction.Magnitude)
+                        args[2] = {LP.Character, Cam}
+                    end
                 end
             end
+            return oldNamecall(self, table.unpack(args))
         end
-    end
+
+        if CONFIG.SilentAim and (method == "FireServer" or method == "InvokeServer") then
+            local args = {...}
+            local t = getTarget()
+            if t then
+                for i, v in ipairs(args) do
+                    if typeof(v) == "CFrame" then
+                        args[i] = CFrame.new(v.Position, t.Position)
+                    elseif typeof(v) == "Vector3" then
+                        local origin = Cam.CFrame.Position
+                        args[i] = (t.Position - origin).Unit
+                    end
+                end
+            end
+            return oldNamecall(self, table.unpack(args))
+        end
+        return oldNamecall(self, ...)
+    end)
 end)
 
+if not hookSuccess then
+    print("[MINEHUB] Hook failed. Magic Bullet disabled (Executor not supported).")
+end
+
 -- ============================================================
--- LONG RANGE
+-- LONG RANGE + ONE HIT
 -- ============================================================
 local function patchGuns()
     if not CONFIG.LongRange then return end
@@ -134,6 +141,20 @@ local function patchGuns()
                     end
                 end
             end
+            for attr, val in pairs(tool:GetAttributes()) do
+                local an = tostring(attr):lower()
+                if type(val) == "number" then
+                    if an:find("range") or an:find("distance") then
+                        pcall(function() tool:SetAttribute(attr, 99999) end)
+                    end
+                    if an:find("damage") then
+                        pcall(function() tool:SetAttribute(attr, 9999) end)
+                    end
+                    if an:find("firerate") or an:find("cooldown") then
+                        pcall(function() tool:SetAttribute(attr, 0.01) end)
+                    end
+                end
+            end
         end
     end
 end
@@ -149,7 +170,6 @@ end)
 -- ============================================================
 RunService.RenderStepped:Connect(function()
     if not CONFIG.NoRecoil then return end
-    if isAiming() then return end
     local rot = Cam.CFrame - Cam.CFrame.Position
     local _, ry, _ = rot:ToEulerAnglesXYZ()
     local target = CFrame.new(Cam.CFrame.Position) * CFrame.Angles(0, ry, 0)
@@ -157,23 +177,9 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ============================================================
--- ESP
+-- SKELETON ESP ONLY
 -- ============================================================
-local espFolder = Instance.new("Folder")
-espFolder.Name = "MINEHUB_ESP"
-pcall(function() espFolder.Parent = CoreGui end)
-if not espFolder.Parent then espFolder.Parent = LP:WaitForChild("PlayerGui") end
-
-local boxes = {}
 local skels = {}
-
-local function clearPlayer(p)
-    if boxes[p] then boxes[p]:Destroy(); boxes[p] = nil end
-    if skels[p] then
-        for _, line in pairs(skels[p].lines) do line:Destroy() end
-        skels[p] = nil
-    end
-end
 
 local SKEL_BONES_R15 = {
     {"Head","UpperTorso"}, {"UpperTorso","LowerTorso"},
@@ -187,18 +193,33 @@ local SKEL_BONES_R6 = {
     {"Torso","Left Leg"}, {"Torso","Right Leg"},
 }
 
-local function buildSkeleton(char)
+local function clearPlayer(p)
+    if skels[p] then
+        for _, line in pairs(skels[p].lines) do line:Destroy() end
+        skels[p] = nil
+    end
+end
+
+local function buildSkeleton(p)
+    local char = p.Character
+    if not char then return end
+    clearPlayer(p)
+
+    local isTeam = (p.Team == LP.Team)
+    local col = isTeam and CONFIG.TeamColor or CONFIG.EnemyColor
+
     local lines = {}
     local rig = char:FindFirstChild("Humanoid") and char.Humanoid.RigType
     local bones = (rig == Enum.HumanoidRigType.R15) and SKEL_BONES_R15 or SKEL_BONES_R6
+    
     for i = 1, #bones do
         local l = Drawing.new("Line")
-        l.Thickness = 1
-        l.Color = CONFIG.ESPColor
+        l.Thickness = 1.5
+        l.Color = col
         l.Visible = false
         lines[i] = l
     end
-    return lines, bones
+    skels[p] = {lines = lines, bones = bones, color = col}
 end
 
 local function updateSkeleton(p)
@@ -210,6 +231,15 @@ local function updateSkeleton(p)
         for _, l in ipairs(lines) do l.Visible = false end
         return
     end
+    
+    -- Update color dynamically based on team change
+    local isTeam = (p.Team == LP.Team)
+    local col = isTeam and CONFIG.TeamColor or CONFIG.EnemyColor
+    if entry.color ~= col then
+        entry.color = col
+        for _, l in ipairs(lines) do l.Color = col end
+    end
+
     for i, pair in ipairs(bones) do
         local a = char:FindFirstChild(pair[1])
         local b = char:FindFirstChild(pair[2])
@@ -229,54 +259,23 @@ local function updateSkeleton(p)
     end
 end
 
-local function buildESP(p)
-    local char = p.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    clearPlayer(p)
-
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = "MINEHUB_BOX"
-    box.Adornee = hrp
-    box.AlwaysOnTop = true
-    box.ZIndex = 5
-    box.Size = Vector3.new(4, 6, 2)
-    box.Color3 = CONFIG.ESPColor
-    box.Transparency = 0.4
-    box.Parent = espFolder
-    boxes[p] = box
-
-    local lines, bones = buildSkeleton(char)
-    skels[p] = {lines = lines, bones = bones}
-end
-
 Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function() task.wait(0.6) buildESP(p) end)
+    p.CharacterAdded:Connect(function() task.wait(0.6) buildSkeleton(p) end)
 end)
 Players.PlayerRemoving:Connect(clearPlayer)
 for _, p in ipairs(Players:GetPlayers()) do
     if p ~= LP then
-        if p.Character then buildESP(p) end
-        p.CharacterAdded:Connect(function() task.wait(0.6) buildESP(p) end)
+        if p.Character then buildSkeleton(p) end
+        p.CharacterAdded:Connect(function() task.wait(0.6) buildSkeleton(p) end)
     end
 end
 
 RunService.RenderStepped:Connect(function()
-    for p, box in pairs(boxes) do
-        if CONFIG.BoxESP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            box.Visible = true
-            box.Adornee = p.Character.HumanoidRootPart
-            box.Color3 = CONFIG.ESPColor
-        else
-            box.Visible = false
-        end
-    end
     for p, _ in pairs(skels) do updateSkeleton(p) end
 end)
 
 -- ============================================================
--- TABBED MENU
+-- MENU
 -- ============================================================
 local function buildMenu()
     local existing = CoreGui:FindFirstChild("MINEHUB_MENU") or LP.PlayerGui:FindFirstChild("MINEHUB_MENU")
@@ -289,8 +288,8 @@ local function buildMenu()
     if not success or not gui.Parent then gui.Parent = LP:WaitForChild("PlayerGui") end
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 320, 0, 280)
-    main.Position = UDim2.new(0.5, -160, 0.5, -140)
+    main.Size = UDim2.new(0, 250, 0, 210)
+    main.Position = UDim2.new(0.5, -125, 0.5, -105)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -303,18 +302,17 @@ local function buildMenu()
 
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -30, 0, 30)
-    title.Position = UDim2.new(0, 10, 0, 2)
+    title.Position = UDim2.new(0, 5, 0, 2)
     title.BackgroundTransparency = 1
-    title.Text = "MINEHUB VOXEL"
+    title.Text = "MINEHUB"
     title.Font = Enum.Font.GothamBold
     title.TextSize = 14
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = main
 
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 20, 0, 20)
-    closeBtn.Position = UDim2.new(1, -25, 0, 5)
+    closeBtn.Position = UDim2.new(1, -25, 0, 6)
     closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     closeBtn.Text = "X"
     closeBtn.Font = Enum.Font.GothamBold
@@ -324,71 +322,18 @@ local function buildMenu()
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
     closeBtn.MouseButton1Click:Connect(function() gui.Enabled = false end)
 
-    -- Tabs Container
-    local tabBar = Instance.new("Frame")
-    tabBar.Size = UDim2.new(1, -20, 0, 25)
-    tabBar.Position = UDim2.new(0, 10, 0, 35)
-    tabBar.BackgroundTransparency = 1
-    tabBar.Parent = main
-    Instance.new("UIListLayout", tabBar).FillDirection = Enum.FillDirection.Horizontal
-    Instance.new("UIListLayout", tabBar).Padding = UDim.new(0, 5)
-
     local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -20, 1, -70)
-    content.Position = UDim2.new(0, 10, 0, 65)
+    content.Size = UDim2.new(1, -20, 1, -40)
+    content.Position = UDim2.new(0, 10, 0, 35)
     content.BackgroundTransparency = 1
     content.Parent = main
+    Instance.new("UIListLayout", content).Padding = UDim.new(0, 6)
 
-    local pages = {}
-    local activeTab = nil
-
-    local function newPage(name)
-        local page = Instance.new("ScrollingFrame")
-        page.Size = UDim2.new(1, 0, 1, 0)
-        page.BackgroundTransparency = 1
-        page.BorderSizePixel = 0
-        page.ScrollBarThickness = 2
-        page.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        page.Visible = false
-        page.Parent = content
-        Instance.new("UIListLayout", page).Padding = UDim.new(0, 6)
-        pages[name] = page
-        return page
-    end
-
-    local function makeTab(name)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.25, -4, 1, 0)
-        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.Text = name
-        btn.Font = Enum.Font.GothamMedium
-        btn.TextSize = 11
-        btn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        btn.Parent = tabBar
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-        
-        local page = newPage(name)
-
-        btn.MouseButton1Click:Connect(function()
-            if activeTab == name then return end
-            activeTab = name
-            for n, p in pairs(pages) do p.Visible = (n == name) end
-            for _, child in ipairs(tabBar:GetChildren()) do
-                if child:IsA("TextButton") then
-                    local isActive = (child.Text == name)
-                    child.BackgroundColor3 = isActive and Color3.fromRGB(45, 45, 45) or Color3.fromRGB(25, 25, 25)
-                    child.TextColor3 = isActive and CONFIG.Accent or Color3.fromRGB(150, 150, 150)
-                end
-            end
-        end)
-        return page
-    end
-
-    local function makeToggle(parent, label, configKey)
+    local function makeToggle(label, configKey)
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 30)
         row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        row.Parent = parent
+        row.Parent = content
         Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
 
         local lbl = Instance.new("TextLabel")
@@ -429,71 +374,10 @@ local function buildMenu()
         end)
     end
 
-    local function makeSlider(parent, label, configKey, min, max)
-        local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, 0, 0, 40)
-        row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        row.Parent = parent
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
-
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, -60, 0, 15)
-        lbl.Position = UDim2.new(0, 10, 0, 5)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = label .. ": " .. tostring(CONFIG[configKey])
-        lbl.Font = Enum.Font.Gotham
-        lbl.TextSize = 11
-        lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.Parent = row
-
-        local bar = Instance.new("Frame")
-        bar.Size = UDim2.new(1, -20, 0, 8)
-        bar.Position = UDim2.new(0, 10, 0, 25)
-        bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        bar.Parent = row
-        Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
-
-        local fill = Instance.new("Frame")
-        fill.Size = UDim2.new((CONFIG[configKey]-min)/(max-min), 0, 1, 0)
-        fill.BackgroundColor3 = CONFIG.Accent
-        fill.Parent = bar
-        Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 1, 0)
-        btn.BackgroundTransparency = 1
-        btn.Text = ""
-        btn.Parent = bar
-
-        btn.MouseButton1Click:Connect(function()
-            local mouse = UserInput:GetMouseLocation()
-            local relX = math.clamp((mouse.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-            CONFIG[configKey] = math.floor(min + (max - min) * relX)
-            fill.Size = UDim2.new(relX, 0, 1, 0)
-            lbl.Text = label .. ": " .. tostring(CONFIG[configKey])
-        end)
-    end
-
-    local aimPage = makeTab("Aim")
-    makeToggle(aimPage, "Aimbot (Hold RMB)", "Aimbot")
-    makeToggle(aimPage, "Team Check", "TeamCheck")
-    makeSlider(aimPage, "FOV", "FOV", 50, 800)
-
-    local visPage = makeTab("Visual")
-    makeToggle(visPage, "Box ESP", "BoxESP")
-    makeToggle(visPage, "Skeleton ESP", "SkeletonESP")
-
-    local miscPage = makeTab("Misc")
-    makeToggle(miscPage, "Long Range", "LongRange")
-    makeToggle(miscPage, "No Recoil", "NoRecoil")
-    makeToggle(miscPage, "Bring All", "BringAll")
-
-    local cfgPage = makeTab("Config")
-    -- Add anything else here later if needed
-
-    -- Activate first tab
-    tabBar:GetChildren()[1].MouseButton1Click:Fire()
+    makeToggle("Skeleton ESP (Red/Blue)", "SkeletonESP")
+    makeToggle("Silent Aim (Magic Bullet)", "SilentAim")
+    makeToggle("Long Range / One Hit", "LongRange")
+    makeToggle("No Recoil", "NoRecoil")
 
     -- Dragging
     local dragging, dragStart, startPos
@@ -514,7 +398,6 @@ local function buildMenu()
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 
-    -- Open/Close
     UserInput.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.RightShift then
@@ -532,4 +415,4 @@ LP.Chatted:Connect(function(msg)
     end
 end)
 
-print("[MINEHUB] Tabbed Menu Loaded.")
+print("[MINEHUB] Skeleton + Magic Bullet loaded.")
