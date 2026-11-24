@@ -1,5 +1,5 @@
---[[ MINEHUB :: VOXEL WARS ]]
-print("[MINEHUB] VoxelWars build loaded.")
+--[[ MINEHUB :: VOXEL WARS (Solara Safe) ]]
+print("[MINEHUB] Loaded. (Hooks disabled for Solara)")
 
 local Players    = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,11 +11,8 @@ local Cam        = Workspace.CurrentCamera
 
 local CONFIG = {
     Aimbot       = true,
-    SilentAim    = true,
-    MagicBullet  = true,
     BoxESP       = true,
     SkeletonESP  = true,
-    Wallbang     = true,
     NoRecoil     = true,
     LongRange    = true,
     AimKey       = Enum.UserInputType.MouseButton2,
@@ -39,7 +36,7 @@ fov.Filled = false
 RunService.RenderStepped:Connect(function()
     fov.Position = Cam.ViewportSize / 2
     fov.Radius = CONFIG.FOV
-    fov.Visible = CONFIG.Aimbot or CONFIG.SilentAim
+    fov.Visible = CONFIG.Aimbot
 end)
 
 -- ============================================================
@@ -75,7 +72,7 @@ local function getTarget()
 end
 
 -- ============================================================
--- AIMBOT (hard lock camera)
+-- AIMBOT (Hard Lock Camera)
 -- ============================================================
 RunService.RenderStepped:Connect(function()
     if CONFIG.Aimbot and isAiming() then
@@ -85,66 +82,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
-
--- ============================================================
--- SILENT AIM + MAGIC BULLET + WALLBANG
--- ============================================================
-local ok, err = pcall(function()
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
-        if checkcaller() then
-            return oldNamecall(self, ...)
-        end
-
-        if method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList" then
-            local args = {...}
-            if CONFIG.MagicBullet then
-                local t = getTarget()
-                if t then
-                    if method == "Raycast" then
-                        local origin = args[1]
-                        local dir = args[2]
-                        args[2] = (t.Position - origin).Unit * dir.Magnitude
-                        args[3] = args[3] or RaycastParams.new()
-                        args[3].FilterType = Enum.RaycastFilterType.Exclude
-                        args[3].FilterDescendantsInstances = {LP.Character, Cam}
-                    else
-                        local ray = args[1]
-                        args[1] = Ray.new(ray.Origin, (t.Position - ray.Origin).Unit * ray.Direction.Magnitude)
-                        args[2] = {LP.Character, Cam}
-                    end
-                end
-            end
-            if CONFIG.Wallbang and method == "Raycast" and args[3] then
-                args[3].IgnoreWater = true
-                args[3].CollisionGroup = "Default"
-                args[3].FilterDescendantsInstances = {LP.Character, Cam}
-                args[3].FilterType = Enum.RaycastFilterType.Exclude
-            end
-            return oldNamecall(self, table.unpack(args))
-        end
-
-        if CONFIG.SilentAim and (method == "FireServer" or method == "InvokeServer") then
-            local args = {...}
-            local t = getTarget()
-            if t then
-                for i, v in ipairs(args) do
-                    if typeof(v) == "CFrame" then
-                        args[i] = CFrame.new(v.Position, t.Position)
-                    elseif typeof(v) == "Vector3" then
-                        local origin = Cam.CFrame.Position
-                        args[i] = (t.Position - origin).Unit
-                    end
-                end
-            end
-            return oldNamecall(self, table.unpack(args))
-        end
-
-        return oldNamecall(self, ...)
-    end)
-end)
-if not ok then warn("[MINEHUB] namecall hook failed: "..tostring(err)) end
 
 -- ============================================================
 -- LONG RANGE
@@ -194,7 +131,7 @@ LP.CharacterAdded:Connect(function(c)
 end)
 
 -- ============================================================
--- NO RECOIL (lerp)
+-- NO RECOIL (Lerp)
 -- ============================================================
 RunService.RenderStepped:Connect(function()
     if not CONFIG.NoRecoil then return end
@@ -326,5 +263,5 @@ RunService.RenderStepped:Connect(function()
     for p, _ in pairs(skels) do updateSkeleton(p) end
 end)
 
-print("[MINEHUB] All systems live.")
+print("[MINEHUB] Aimbot / ESP / Skeleton / Long Range live.")
 print("[MINEHUB] Hold RMB to lock. Have fun, Kanha.")
