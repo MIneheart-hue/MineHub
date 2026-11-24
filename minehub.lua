@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Bulletproof Edition (Fixed UI + Button)
+-- MINEHUB  |  Aimbot + ESP + No Recoil (Working Version)
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -12,16 +12,15 @@ local LocalPlayer   = Players.LocalPlayer
 local Camera        = Workspace.CurrentCamera
 
 local CONFIG = {
-    SilentAim  = true,
+    Aimbot     = true,
+    AimKey     = Enum.KeyCode.E, -- Hold E to lock
     ESP        = true,
     NoRecoil   = true,
-    SmoothPOV  = true,
-    FOV        = 150,
-    Smoothness = 0.18,
-    MaxSmooth  = 400,
+    FOV        = 250, -- Screen pixels
+    Smoothness = 0.25, -- 0.1 = snappy, 0.5 = slow
+    MaxDist    = 500, -- Studs
     TeamCheck  = true,
     AimPart    = "Head",
-    ESPColor   = Color3.fromRGB(255, 0, 150),
     Accent     = Color3.fromRGB(255, 0, 150), 
 }
 
@@ -35,28 +34,22 @@ local function createMenu()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = CoreGui
 
-    -- Main Container
     local main = Instance.new("Frame")
     main.Name = "Main"
     main.Size = UDim2.new(0, 260, 0, 210)
     main.Position = UDim2.new(0.5, -130, 0.5, -105)
-    main.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Solid Dark Gray
-    main.BackgroundTransparency = 0
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
-    main.ClipsDescendants = true
     main.Parent = gui
 
     local corner = Instance.new("UICorner", main)
     corner.CornerRadius = UDim.new(0, 8)
     
-    -- Simple Pink Accent Line (No UIStroke)
     local accentLine = Instance.new("Frame", main)
     accentLine.Size = UDim2.new(1, 0, 0, 2)
-    accentLine.Position = UDim2.new(0, 0, 0, 0)
     accentLine.BackgroundColor3 = CONFIG.Accent
     accentLine.BorderSizePixel = 0
 
-    -- Title & Close Button
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -30, 0, 30)
     title.Position = UDim2.new(0, 5, 0, 2)
@@ -75,7 +68,6 @@ local function createMenu()
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 12
     closeBtn.TextColor3 = CONFIG.Accent
-    closeBtn.AutoButtonColor = false
     closeBtn.Parent = main
     local cCorner = Instance.new("UICorner", closeBtn)
     cCorner.CornerRadius = UDim.new(0, 4)
@@ -84,7 +76,6 @@ local function createMenu()
         gui.Enabled = false
     end)
 
-    -- Tab Strip
     local tabs = Instance.new("Frame")
     tabs.Size = UDim2.new(1, -20, 0, 25)
     tabs.Position = UDim2.new(0, 10, 0, 35)
@@ -98,55 +89,41 @@ local function createMenu()
     local tabList = Instance.new("UIListLayout", tabBar)
     tabList.FillDirection = Enum.FillDirection.Horizontal
     tabList.Padding = UDim.new(0, 5)
-    tabList.VerticalAlignment = Enum.VerticalAlignment.Center
 
-    -- Content
     local content = Instance.new("Frame")
     content.Size = UDim2.new(1, -20, 1, -70)
     content.Position = UDim2.new(0, 10, 0, 65)
     content.BackgroundTransparency = 1
-    content.ClipsDescendants = true
     content.Parent = main
 
-    local pages = {}
-    local activeTab = nil
+    local pages, activeTab = {}, nil
 
     local function newPage(name)
         local page = Instance.new("ScrollingFrame")
-        page.Name = name
         page.Size = UDim2.new(1, 0, 1, 0)
         page.BackgroundTransparency = 1
         page.BorderSizePixel = 0
         page.ScrollBarThickness = 2
         page.ScrollBarImageColor3 = CONFIG.Accent
-        page.CanvasSize = UDim2.new(0, 0, 0, 0)
         page.AutomaticCanvasSize = Enum.AutomaticSize.Y
         page.Visible = false
         page.Parent = content
-
         local list = Instance.new("UIListLayout", page)
         list.Padding = UDim.new(0, 6)
-        list.SortOrder = Enum.SortOrder.LayoutOrder
-
         pages[name] = page
         return page
     end
 
     local function makeTab(name)
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.3, -4, 1, 0)
+        btn.Size = UDim2.new(0.33, -4, 1, 0)
         btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.BorderSizePixel = 0
         btn.Text = name
         btn.Font = Enum.Font.GothamMedium
         btn.TextSize = 11
         btn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        btn.AutoButtonColor = false
         btn.Parent = tabBar
-
-        local btnCorner = Instance.new("UICorner", btn)
-        btnCorner.CornerRadius = UDim.new(0, 4)
-
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         local page = newPage(name)
 
         btn.MouseButton1Click:Connect(function()
@@ -156,14 +133,11 @@ local function createMenu()
             for _, child in ipairs(tabBar:GetChildren()) do
                 if child:IsA("TextButton") then
                     local isActive = (child.Text == name)
-                    TweenService:Create(child, TweenInfo.new(0.2), {
-                        BackgroundColor3 = isActive and Color3.fromRGB(45, 45, 45) or Color3.fromRGB(25, 25, 25),
-                        TextColor3 = isActive and CONFIG.Accent or Color3.fromRGB(150, 150, 150),
-                    }):Play()
+                    child.BackgroundColor3 = isActive and Color3.fromRGB(45, 45, 45) or Color3.fromRGB(25, 25, 25)
+                    child.TextColor3 = isActive and CONFIG.Accent or Color3.fromRGB(150, 150, 150)
                 end
             end
         end)
-
         return page
     end
 
@@ -171,10 +145,8 @@ local function createMenu()
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 30)
         row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        row.BorderSizePixel = 0
         row.Parent = parent
-        local rCorner = Instance.new("UICorner", row)
-        rCorner.CornerRadius = UDim.new(0, 6)
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
 
         local labelObj = Instance.new("TextLabel")
         labelObj.Size = UDim2.new(1, -50, 1, 0)
@@ -191,18 +163,14 @@ local function createMenu()
         knob.Size = UDim2.new(0, 30, 0, 14)
         knob.Position = UDim2.new(1, -40, 0.5, -7)
         knob.BackgroundColor3 = CONFIG[configKey] and CONFIG.Accent or Color3.fromRGB(50, 50, 50)
-        knob.BorderSizePixel = 0
         knob.Parent = row
-        local kCorner = Instance.new("UICorner", knob)
-        kCorner.CornerRadius = UDim.new(1, 0)
+        Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 
         local pill = Instance.new("Frame", knob)
         pill.Size = UDim2.new(0, 10, 0, 10)
         pill.Position = CONFIG[configKey] and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
         pill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        pill.BorderSizePixel = 0
-        local pCorner = Instance.new("UICorner", pill)
-        pCorner.CornerRadius = UDim.new(1, 0)
+        Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
 
         local click = Instance.new("TextButton")
         click.Size = UDim2.new(1, 0, 1, 0)
@@ -213,12 +181,8 @@ local function createMenu()
         click.MouseButton1Click:Connect(function()
             CONFIG[configKey] = not CONFIG[configKey]
             local on = CONFIG[configKey]
-            TweenService:Create(knob, TweenInfo.new(0.15, Enum.EasingStyle.Quint), {
-                BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(50, 50, 50),
-            }):Play()
-            TweenService:Create(pill, TweenInfo.new(0.15, Enum.EasingStyle.Quint), {
-                Position = on and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5),
-            }):Play()
+            knob.BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(50, 50, 50)
+            pill.Position = on and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
         end)
     end
 
@@ -226,10 +190,8 @@ local function createMenu()
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 36)
         row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        row.BorderSizePixel = 0
         row.Parent = parent
-        local rCorner = Instance.new("UICorner", row)
-        rCorner.CornerRadius = UDim.new(0, 6)
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
 
         local labelObj = Instance.new("TextLabel")
         labelObj.Size = UDim2.new(1, -20, 0, 16)
@@ -246,17 +208,13 @@ local function createMenu()
         bar.Size = UDim2.new(1, -20, 0, 3)
         bar.Position = UDim2.new(0, 10, 0, 26)
         bar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        bar.BorderSizePixel = 0
         bar.Parent = row
-        local bCorner = Instance.new("UICorner", bar)
-        bCorner.CornerRadius = UDim.new(1, 0)
+        Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
 
         local fill = Instance.new("Frame", bar)
         fill.BackgroundColor3 = CONFIG.Accent
-        fill.BorderSizePixel = 0
         fill.Size = UDim2.new((CONFIG[configKey] - min) / (max - min), 0, 1, 0)
-        local fCorner = Instance.new("UICorner", fill)
-        fCorner.CornerRadius = UDim.new(1, 0)
+        Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
 
         local hit = Instance.new("TextButton")
         hit.Size = UDim2.new(1, 0, 4, 0)
@@ -285,10 +243,9 @@ local function createMenu()
     end
 
     local aimPage = makeTab("Aim")
-    makeToggle(aimPage, "Silent Aim", "SilentAim")
-    makeToggle(aimPage, "Smooth POV", "SmoothPOV")
-    makeSlider(aimPage, "FOV", "FOV", 20, 400, 5)
-    makeSlider(aimPage, "Smoothness", "Smoothness", 0.01, 0.6, 0.01)
+    makeToggle(aimPage, "Camera Aimbot", "Aimbot")
+    makeSlider(aimPage, "FOV", "FOV", 50, 500, 10)
+    makeSlider(aimPage, "Smoothness", "Smoothness", 0.05, 0.8, 0.05)
 
     local visPage = makeTab("Visual")
     makeToggle(visPage, "ESP", "ESP")
@@ -317,12 +274,6 @@ local function createMenu()
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 
-    main.Size = UDim2.new(0, 0, 0, 0)
-    TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 260, 0, 210),
-    }):Play()
-
-    -- INSERT KEYBIND
     UserInput.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.Insert then
@@ -335,94 +286,177 @@ end
 
 createMenu()
 
+-- ============================================================
+-- ESP (Working BillboardGui)
+-- ============================================================
 local espFolder = Instance.new("Folder")
 espFolder.Name = "MINEHUB_ESP"
 espFolder.Parent = CoreGui
 
 local boxes = {}
-local function makeBox(player)
-    local char = player.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    if boxes[player] then return end
+
+local function createESP(char)
+    local head = char:FindFirstChild("Head")
+    if not head or boxes[char] then return end
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "MINEHUB_BB"
+    billboard.Adornee = head
+    billboard.Size = UDim2.new(0, 100, 0, 30)
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = espFolder
+
+    local name = Instance.new("TextLabel")
+    name.Size = UDim2.new(1, 0, 0.5, 0)
+    name.BackgroundTransparency = 1
+    name.Text = char.Name
+    name.TextColor3 = CONFIG.Accent
+    name.TextStrokeTransparency = 0
+    name.Font = Enum.Font.GothamBold
+    name.TextSize = 12
+    name.Parent = billboard
+
+    local healthBg = Instance.new("Frame")
+    healthBg.Size = UDim2.new(1, 0, 0.2, 0)
+    healthBg.Position = UDim2.new(0, 0, 0.6, 0)
+    healthBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    healthBg.BorderSizePixel = 0
+    healthBg.Parent = billboard
+    
+    local healthBar = Instance.new("Frame")
+    healthBar.Size = UDim2.new(1, 0, 1, 0)
+    healthBar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    healthBar.BorderSizePixel = 0
+    healthBar.Parent = healthBg
+
     local box = Instance.new("BoxHandleAdornment")
-    box.Adornee = hrp
+    box.Adornee = char:FindFirstChild("HumanoidRootPart")
     box.AlwaysOnTop = true
     box.ZIndex = 5
     box.Size = Vector3.new(4, 5.5, 2)
-    box.Color3 = CONFIG.ESPColor
-    box.Transparency = 0.55
+    box.Color3 = CONFIG.Accent
+    box.Transparency = 0.5
     box.Parent = espFolder
-    boxes[player] = box
+
+    boxes[char] = {billboard = billboard, box = box, healthBar = healthBar}
+
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.HealthChanged:Connect(function(hp)
+            healthBar.Size = UDim2.new(hp / hum.MaxHealth, 0, 1, 0)
+            healthBar.BackgroundColor3 = Color3.fromRGB(255 * (1 - hp/hum.MaxHealth), 255 * (hp/hum.MaxHealth), 0)
+        end)
+    end
 end
 
-local function removeBox(p)
-    if boxes[p] then boxes[p]:Destroy(); boxes[p] = nil end
+local function removeESP(char)
+    if boxes[char] then
+        boxes[char].billboard:Destroy()
+        boxes[char].box:Destroy()
+        boxes[char] = nil
+    end
 end
 
 local function refreshESP()
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
-            if CONFIG.ESP then
-                if not boxes[p] then
-                    p.CharacterAdded:Connect(function() task.wait(0.5); if CONFIG.ESP then makeBox(p) end end)
-                    makeBox(p)
-                end
-            else removeBox(p) end
+            if CONFIG.ESP and p.Character then
+                createESP(p.Character)
+            end
         end
     end
 end
-refreshESP()
-task.spawn(function() while task.wait(1) do refreshESP() end end)
-Players.PlayerRemoving:Connect(removeBox)
 
-local function getTarget()
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function(char)
+        task.wait(1)
+        if CONFIG.ESP then createESP(char) end
+        char.AncestryChanged:Connect(function()
+            if not char:IsDescendantOf(Workspace) then removeESP(char) end
+        end)
+    end)
+end)
+
+task.spawn(function()
+    while task.wait(1) do
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and CONFIG.ESP then
+                if not boxes[p.Character] then createESP(p.Character) end
+            elseif not CONFIG.ESP then
+                if p.Character and boxes[p.Character] then removeESP(p.Character) end
+            end
+        end
+    end
+end)
+
+-- ============================================================
+-- AIMBOT + NO RECOIL
+-- ============================================================
+local function getClosestTarget()
     local best, bestDist = nil, CONFIG.FOV
+    local center = Camera.ViewportSize / 2
+
     for _, p in ipairs(Players:GetPlayers()) do
         if p == LocalPlayer then continue end
         if CONFIG.TeamCheck and p.Team == LocalPlayer.Team then continue end
+        
         local char = p.Character
         if not char then continue end
-        local part = char:FindFirstChild(CONFIG.AimPart)
+        local part = char:FindFirstChild(CONFIG.AimPart) or char:FindFirstChild("HumanoidRootPart")
         if not part then continue end
+        
         local hum = char:FindFirstChildOfClass("Humanoid")
         if not hum or hum.Health <= 0 then continue end
+        
+        local distFromMe = (Camera.CFrame.Position - part.Position).Magnitude
+        if distFromMe > CONFIG.MaxDist then continue end
+
         local sp, onScreen = Camera:WorldToViewportPoint(part.Position)
-        if not onScreen then continue end
-        local center = Camera.ViewportSize / 2
-        local dist = (Vector2.new(sp.X, sp.Y) - center).Magnitude
-        if dist < bestDist then best, bestDist = part, dist end
+        if onScreen then
+            local dist = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+            if dist < bestDist then 
+                best, bestDist = part, dist 
+            end
+        end
     end
     return best
 end
 
-local mouse = LocalPlayer:GetMouse()
-local oldIndex
-oldIndex = hookmetamethod(game, "__index", function(self, key)
-    if CONFIG.SilentAim and self == mouse and (key == "Hit" or key == "Target") then
-        local t = getTarget()
-        if t then return t.Position end
+UserInput.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == CONFIG.AimKey then
+        local target = getClosestTarget()
+        if target then
+            local camPos = Camera.CFrame.Position
+            local desired = CFrame.new(camPos, target.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(desired, CONFIG.Smoothness)
+        end
     end
-    return oldIndex(self, key)
 end)
 
-RunService:BindToRenderStep("MINEHUB_SmoothPOV", Enum.RenderPriority.Camera.Value + 1, function(dt)
-    if not CONFIG.SmoothPOV then return end
-    local t = getTarget()
-    if not t then return end
-    local sp = Camera:WorldToViewportPoint(t.Position)
-    local center = Camera.ViewportSize / 2
-    if (Vector2.new(sp.X, sp.Y) - center).Magnitude > CONFIG.MaxSmooth then return end
-    local desired = CFrame.new(Camera.CFrame.Position, t.Position)
-    local alpha = math.clamp(1 - math.exp(-CONFIG.Smoothness * 60 * dt), 0, 1)
-    Camera.CFrame = Camera.CFrame:Lerp(desired, alpha)
+RunService.RenderStepped:Connect(function(dt)
+    -- 1. Aimbot Locking
+    if CONFIG.Aimbot and UserInput:IsKeyDown(CONFIG.AimKey) then
+        local target = getClosestTarget()
+        if target then
+            local camPos = Camera.CFrame.Position
+            local desired = CFrame.new(camPos, target.Position)
+            local alpha = math.clamp(1 - math.exp(-CONFIG.Smoothness * 60 * dt), 0, 1)
+            Camera.CFrame = Camera.CFrame:Lerp(desired, alpha)
+        end
+    end
+
+    -- 2. No Recoil (Strips camera pitch kick)
+    if CONFIG.NoRecoil then
+        local rot = Camera.CFrame - Camera.CFrame.Position
+        local rx, ry, rz = rot:ToEulerAnglesXYZ()
+        -- We add the positive pitch back so recoil (which pushes up) is cancelled
+        -- Only if not actively aiming, so it doesn't fight the aimbot
+        if not UserInput:IsKeyDown(CONFIG.AimKey) then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position) * CFrame.Angles(0, ry, 0)
+        end
+    end
 end)
 
-RunService:BindToRenderStep("MINEHUB_NoRecoil", Enum.RenderPriority.Camera.Value + 2, function()
-    if not CONFIG.NoRecoil then return end
-    local rot = Camera.CFrame - Camera.CFrame.Position
-    Camera.CFrame = CFrame.new(Camera.CFrame.Position) * rot
-end)
-
-print("[MINEHUB] Bulletproof UI loaded. Press INSERT to toggle.")
+print("[MINEHUB] Working Aimbot & ESP loaded. Hold [E] to aim.")
