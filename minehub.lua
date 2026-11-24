@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Drawing ESP + Camera Aimbot
+-- MINEHUB  |  Ultimate Edition
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -11,11 +11,12 @@ local LocalPlayer   = Players.LocalPlayer
 local Camera        = Workspace.CurrentCamera
 
 local CONFIG = {
+    SilentAim  = true,
     Aimbot     = true,
-    AimKey     = Enum.KeyCode.K,
     ESP        = true,
     NoRecoil   = true,
-    FOV        = 250,
+    AimKey     = Enum.KeyCode.K,
+    FOV        = 150,
     Smoothness = 0.25, 
     MaxDist    = 500, 
     TeamCheck  = true,
@@ -24,12 +25,18 @@ local CONFIG = {
 }
 
 -- ============================================================
--- DRAWING API ESP (Bypasses Roblox UI blocks)
+-- DRAWING API ESP (Enemies Only)
 -- ============================================================
 local espTable = {}
 
+local function isEnemy(player)
+    if player == LocalPlayer then return false end
+    if CONFIG.TeamCheck and player.Team == LocalPlayer.Team then return false end
+    return true
+end
+
 local function createESP(player)
-    if player == LocalPlayer or espTable[player] then return end
+    if not isEnemy(player) or espTable[player] then return end
     
     local box = Drawing.new("Square")
     box.Thickness = 1
@@ -37,42 +44,33 @@ local function createESP(player)
     box.Filled = false
     box.Visible = false
 
-    local name = Drawing.new("Text")
-    name.Size = 14
-    name.Center = true
-    name.Outline = true
-    name.Color = Color3.fromRGB(255, 255, 255)
-    name.Visible = false
-
-    local healthBg = Drawing.new("Square")
-    healthBg.Thickness = 1
-    healthBg.Color = Color3.fromRGB(50, 50, 50)
-    healthBg.Filled = true
-    healthBg.Visible = false
-
-    local healthBar = Drawing.new("Square")
-    healthBar.Thickness = 1
-    healthBar.Color = Color3.fromRGB(0, 255, 0)
-    healthBar.Filled = true
-    healthBar.Visible = false
-
-    espTable[player] = {Box = box, Name = name, HealthBg = healthBg, HealthBar = healthBar}
+    espTable[player] = {Box = box}
 end
 
-Players.PlayerAdded:Connect(createESP)
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function() createESP(p) end)
+    createESP(p)
+end)
 Players.PlayerRemoving:Connect(function(p)
     if espTable[p] then
-        for _, obj in pairs(espTable[p]) do obj:Remove() end
+        espTable[p].Box:Remove()
         espTable[p] = nil
     end
 end)
-
 for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
 
+-- FOV Circle
+local fovCircle = Drawing.new("Circle")
+fovCircle.Thickness = 1
+fovCircle.Color = CONFIG.Accent
+fovCircle.Filled = false
+fovCircle.Visible = true
+
 RunService.RenderStepped:Connect(function()
+    -- ESP Update
     for player, esp in pairs(espTable) do
         if not CONFIG.ESP or not player.Character then
-            for _, obj in pairs(esp) do obj.Visible = false end
+            esp.Box.Visible = false
             continue
         end
 
@@ -92,31 +90,22 @@ RunService.RenderStepped:Connect(function()
                 esp.Box.Size = Vector2.new(width, height)
                 esp.Box.Position = Vector2.new(headPos.X - width/2, headPos.Y)
                 esp.Box.Visible = true
-
-                esp.Name.Text = player.Name
-                esp.Name.Position = Vector2.new(headPos.X, headPos.Y - 20)
-                esp.Name.Visible = true
-
-                local hpPct = hum.Health / hum.MaxHealth
-                esp.HealthBg.Size = Vector2.new(width, 4)
-                esp.HealthBg.Position = Vector2.new(headPos.X - width/2, headPos.Y + height + 2)
-                esp.HealthBg.Visible = true
-
-                esp.HealthBar.Size = Vector2.new(width * hpPct, 4)
-                esp.HealthBar.Position = Vector2.new(headPos.X - width/2, headPos.Y + height + 2)
-                esp.HealthBar.Color = Color3.fromRGB(255 * (1 - hpPct), 255 * hpPct, 0)
-                esp.HealthBar.Visible = true
             else
-                for _, obj in pairs(esp) do obj.Visible = false end
+                esp.Box.Visible = false
             end
         else
-            for _, obj in pairs(esp) do obj.Visible = false end
+            esp.Box.Visible = false
         end
     end
+
+    -- FOV Circle Update
+    fovCircle.Position = Camera.ViewportSize / 2
+    fovCircle.Radius = CONFIG.FOV
+    fovCircle.Visible = CONFIG.Aimbot or CONFIG.SilentAim
 end)
 
 -- ============================================================
--- UI MENU (Fixed Text)
+-- UI MENU
 -- ============================================================
 local function createMenu()
     local existing = CoreGui:FindFirstChild("MINEHUB")
@@ -134,8 +123,7 @@ local function createMenu()
     main.BorderSizePixel = 0
     main.Parent = gui
 
-    local corner = Instance.new("UICorner", main)
-    corner.CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
     
     local accentLine = Instance.new("Frame", main)
     accentLine.Size = UDim2.new(1, 0, 0, 2)
@@ -331,6 +319,7 @@ local function createMenu()
     end
 
     local aimPage = makeTab("Aim")
+    makeToggle(aimPage, "Silent Aim", "SilentAim")
     makeToggle(aimPage, "Camera Aimbot", "Aimbot")
     makeSlider(aimPage, "FOV", "FOV", 50, 500, 10)
     makeSlider(aimPage, "Smoothness", "Smoothness", 0.05, 0.8, 0.05)
@@ -362,9 +351,10 @@ local function createMenu()
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 
+    -- RightShift to toggle
     UserInput.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == Enum.KeyCode.K then
+        if input.KeyCode == Enum.KeyCode.RightShift then
             gui.Enabled = not gui.Enabled
         end
     end)
@@ -372,7 +362,7 @@ end
 createMenu()
 
 -- ============================================================
--- AIMBOT + NO RECOIL
+-- TARGET & SILENT AIM HOOK
 -- ============================================================
 local function getClosestTarget()
     local best, bestDist = nil, CONFIG.FOV
@@ -389,9 +379,6 @@ local function getClosestTarget()
         
         local hum = char:FindFirstChildOfClass("Humanoid")
         if not hum or hum.Health <= 0 then continue end
-        
-        local distFromMe = (Camera.CFrame.Position - part.Position).Magnitude
-        if distFromMe > CONFIG.MaxDist then continue end
 
         local sp, onScreen = Camera:WorldToViewportPoint(part.Position)
         if onScreen then
@@ -404,8 +391,21 @@ local function getClosestTarget()
     return best
 end
 
+local mouse = LocalPlayer:GetMouse()
+local oldIndex
+oldIndex = hookmetamethod(game, "__index", function(self, key)
+    if CONFIG.SilentAim and self == mouse and (key == "Hit" or key == "Target") then
+        local t = getClosestTarget()
+        if t then return t.Position end
+    end
+    return oldIndex(self, key)
+end)
+
+-- ============================================================
+-- RENDER STEP (Aimbot & No Recoil)
+-- ============================================================
 RunService.RenderStepped:Connect(function(dt)
-    -- 1. Aimbot Locking
+    -- 1. Camera Aimbot Locking (Hold K)
     if CONFIG.Aimbot and UserInput:IsKeyDown(CONFIG.AimKey) then
         local target = getClosestTarget()
         if target then
@@ -416,7 +416,7 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- 2. No Recoil
+    -- 2. No Recoil (Strips pitch kick)
     if CONFIG.NoRecoil then
         local rot = Camera.CFrame - Camera.CFrame.Position
         local rx, ry, rz = rot:ToEulerAnglesXYZ()
@@ -426,4 +426,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Drawing ESP & Aimbot loaded. Hold [K] to aim.")
+print("[MINEHUB] Ultimate loaded. Hold [K] to aim, [RightShift] to toggle menu.")
