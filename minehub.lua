@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Neon Edition (Fixed + Keybind)
+-- MINEHUB  |  Native Neon Edition (Fixed Magenta Bug)
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -35,56 +35,55 @@ local function createMenu()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = CoreGui
 
-    -- Main Container
+    -- Main Container (Solid Black)
     local main = Instance.new("Frame")
     main.Name = "Main"
     main.Size = UDim2.new(0, 260, 0, 210)
     main.Position = UDim2.new(0.5, -130, 0.5, -105)
-    main.BackgroundColor3 = Color3.fromRGB(5, 5, 5) -- Pure Black Core (Fixes Magenta Box)
+    main.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
     main.BorderSizePixel = 0
     main.ClipsDescendants = false
     main.Parent = gui
 
     local corner = Instance.new("UICorner", main)
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 8)
 
-    -- Neon Stroke
-    local stroke = Instance.new("UIStroke", main)
-    stroke.Color = CONFIG.Accent
-    stroke.Thickness = 2
-    stroke.Transparency = 0.1
+    -- Natively drawn neon glow (No ImageLabels to break)
+    local strokeOuter = Instance.new("UIStroke", main)
+    strokeOuter.Color = CONFIG.Accent
+    strokeOuter.Thickness = 3
+    strokeOuter.Transparency = 0.3
     
-    -- Glow (sized down slightly so it doesn't cover UI)
-    local glow = Instance.new("ImageLabel", main)
-    glow.BackgroundTransparency = 1
-    glow.Size = UDim2.new(1, 20, 1, 20)
-    glow.Position = UDim2.new(0, -10, 0, -10)
-    glow.Image = "rbxassetid://5028857472"
-    glow.ImageColor3 = CONFIG.Accent
-    glow.ImageTransparency = 0.5
-    glow.ZIndex = -1
-    glow.Parent = main
-
-    TweenService:Create(glow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        ImageTransparency = 0.7,
-        Size = UDim2.new(1, 30, 1, 30),
-        Position = UDim2.new(0, -15, 0, -15)
-    }):Play()
+    local strokeInner = Instance.new("UIStroke", main)
+    strokeInner.Color = Color3.fromRGB(255, 255, 255)
+    strokeInner.Thickness = 1
+    strokeInner.Transparency = 0.5
 
     -- Title
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 30)
-    title.BackgroundTransparency = 1
+    title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    title.BorderSizePixel = 0
     title.Text = "MINEHUB"
     title.Font = Enum.Font.GothamBold
     title.TextSize = 14
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Parent = main
+    
+    local titleCorner = Instance.new("UICorner", title)
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    
+    -- Fix bottom corners of title
+    local titleFix = Instance.new("Frame", title)
+    titleFix.Size = UDim2.new(1, 0, 0, 5)
+    titleFix.Position = UDim2.new(0, 0, 1, -5)
+    titleFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    titleFix.BorderSizePixel = 0
 
     -- Tab Strip
     local tabs = Instance.new("Frame")
     tabs.Size = UDim2.new(1, -20, 0, 25)
-    tabs.Position = UDim2.new(0, 10, 0, 30)
+    tabs.Position = UDim2.new(0, 10, 0, 35)
     tabs.BackgroundTransparency = 1
     tabs.Parent = main
 
@@ -99,8 +98,8 @@ local function createMenu()
 
     -- Content
     local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -20, 1, -65)
-    content.Position = UDim2.new(0, 10, 0, 60)
+    content.Size = UDim2.new(1, -20, 1, -70)
+    content.Position = UDim2.new(0, 10, 0, 65)
     content.BackgroundTransparency = 1
     content.ClipsDescendants = true
     content.Parent = main
@@ -132,7 +131,7 @@ local function createMenu()
     local function makeTab(name)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0.3, -4, 1, 0)
-        btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
         btn.BorderSizePixel = 0
         btn.Text = name
         btn.Font = Enum.Font.GothamMedium
@@ -154,7 +153,7 @@ local function createMenu()
                 if child:IsA("TextButton") then
                     local isActive = (child.Text == name)
                     TweenService:Create(child, TweenInfo.new(0.2), {
-                        BackgroundColor3 = isActive and Color3.fromRGB(25, 25, 25) or Color3.fromRGB(15, 15, 15),
+                        BackgroundColor3 = isActive and Color3.fromRGB(35, 35, 35) or Color3.fromRGB(20, 20, 20),
                         TextColor3 = isActive and CONFIG.Accent or Color3.fromRGB(150, 150, 150),
                     }):Play()
                 end
@@ -167,7 +166,7 @@ local function createMenu()
     local function makeToggle(parent, label, configKey)
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 30)
-        row.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        row.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
         row.BorderSizePixel = 0
         row.Parent = parent
         local rCorner = Instance.new("UICorner", row)
@@ -222,7 +221,7 @@ local function createMenu()
     local function makeSlider(parent, label, configKey, min, max, step)
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 36)
-        row.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        row.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
         row.BorderSizePixel = 0
         row.Parent = parent
         local rCorner = Instance.new("UICorner", row)
@@ -422,4 +421,4 @@ RunService:BindToRenderStep("MINEHUB_NoRecoil", Enum.RenderPriority.Camera.Value
     Camera.CFrame = CFrame.new(Camera.CFrame.Position) * rot
 end)
 
-print("[MINEHUB] Neon UI loaded. Press INSERT to toggle.")
+print("[MINEHUB] Native Neon UI loaded. Press INSERT to toggle.")
