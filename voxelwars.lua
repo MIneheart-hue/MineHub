@@ -1,4 +1,4 @@
---[[ MINEHUB :: VOXEL WARS (Solara Safe + Menu) ]]
+--[[ MINEHUB :: VOXEL WARS (Solara Auto-Lock) ]]
 print("[MINEHUB] Loaded. (Hooks disabled for Solara)")
 
 local Players    = game:GetService("Players")
@@ -15,9 +15,8 @@ local CONFIG = {
     SkeletonESP  = true,
     NoRecoil     = true,
     LongRange    = true,
-    AimKey       = Enum.UserInputType.MouseButton2,
     AimPart      = "Head",
-    FOV          = 250,
+    FOV          = 300,
     TeamCheck    = true,
     Accent       = Color3.fromRGB(255, 0, 150),
     EnemyColor   = Color3.fromRGB(255, 40, 40),
@@ -40,12 +39,8 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ============================================================
--- TARGETING
+-- TARGETING (Auto-Lock, No RMB)
 -- ============================================================
-local function isAiming()
-    return UserInput:IsMouseButtonPressed(CONFIG.AimKey)
-end
-
 local function getTarget()
     local best, bestDist = nil, CONFIG.FOV
     local center = Cam.ViewportSize / 2
@@ -72,10 +67,10 @@ local function getTarget()
 end
 
 -- ============================================================
--- AIMBOT (Hard Lock Camera)
+-- AIMBOT (Hard Lock Camera when toggled ON)
 -- ============================================================
 RunService.RenderStepped:Connect(function()
-    if CONFIG.Aimbot and isAiming() then
+    if CONFIG.Aimbot then
         local t = getTarget()
         if t then
             Cam.CFrame = CFrame.new(Cam.CFrame.Position, t.Position)
@@ -135,11 +130,10 @@ end)
 -- ============================================================
 RunService.RenderStepped:Connect(function()
     if not CONFIG.NoRecoil then return end
-    if isAiming() then return end
     local rot = Cam.CFrame - Cam.CFrame.Position
     local _, ry, _ = rot:ToEulerAnglesXYZ()
     local target = CFrame.new(Cam.CFrame.Position) * CFrame.Angles(0, ry, 0)
-    Cam.CFrame = Cam.CFrame:Lerp(target, 0.12)
+    Cam.CFrame = Cam.CFrame:Lerp(target, 0.15)
 end)
 
 -- ============================================================
@@ -264,7 +258,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ============================================================
--- MENU (Draggable, No Hooks Required)
+-- MENU
 -- ============================================================
 pcall(function()
     local existing = CoreGui:FindFirstChild("MINEHUB_MENU")
@@ -344,7 +338,7 @@ pcall(function()
 
         local pill = Instance.new("Frame", knob)
         pill.Size = UDim2.new(0, 10, 0, 10)
-        pill.Position = CONFIG[configKey] and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
+        pill.Position = CONFIG[configKey] and UDim2.new(1, -13, 0.5, -5) or UDim.new(0, 3, 0.5, -5)
         pill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
 
@@ -362,7 +356,7 @@ pcall(function()
         end)
     end
 
-    makeToggle("Aimbot (RMB)", "Aimbot")
+    makeToggle("Aimbot (Auto-Lock)", "Aimbot")
     makeToggle("Box ESP", "BoxESP")
     makeToggle("Skeleton ESP", "SkeletonESP")
     makeToggle("Long Range", "LongRange")
@@ -387,7 +381,6 @@ pcall(function()
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 
-    -- RightShift toggle
     UserInput.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.RightShift then
@@ -396,4 +389,4 @@ pcall(function()
     end)
 end)
 
-print("[MINEHUB] Menu loaded. RightShift to toggle.")
+print("[MINEHUB] Auto-Lock loaded. RightShift to toggle menu.")
