@@ -1,4 +1,4 @@
---[[ MINEHUB :: V2 (Full Feature) ]]
+--[[ MINEHUB :: V2 (UI Fix) ]]
 print("[MINEHUB V2] Loaded. Type ;menu to open.")
 
 local Players    = game:GetService("Players")
@@ -27,8 +27,8 @@ local CONFIG = {
     BringAll     = false,
     HugeHitbox   = false,
     -- Colors
-    EnemyColor   = Color3.fromRGB(255, 40, 40),   -- Red
-    TeamColor    = Color3.fromRGB(0, 150, 255),   -- Blue
+    EnemyColor   = Color3.fromRGB(255, 40, 40),
+    TeamColor    = Color3.fromRGB(0, 150, 255),
     Accent       = Color3.fromRGB(255, 0, 150),
 }
 
@@ -199,7 +199,7 @@ RunService.RenderStepped:Connect(function()
     local char = LP.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hum or hum.Health <= 0 then return end
-    if UserInput:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end -- Don't fight aimbot
+    if UserInput:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end
     
     local rot = Cam.CFrame - Cam.CFrame.Position
     local _, ry, _ = rot:ToEulerAnglesXYZ()
@@ -234,7 +234,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- ============================================================
--- HUGE HITBOX (R6/R15 parts)
+-- HUGE HITBOX
 -- ============================================================
 task.spawn(function()
     while task.wait(1) do
@@ -294,7 +294,6 @@ local function buildESP(p)
     local isTeam = (p.Team == LP.Team)
     local col = isTeam and CONFIG.TeamColor or CONFIG.EnemyColor
 
-    -- Glow ESP
     local hl = Instance.new("Highlight")
     hl.Name = "MINEHUB_HL"
     hl.Adornee = char
@@ -304,7 +303,6 @@ local function buildESP(p)
     hl.Parent = char
     highlights[p] = hl
 
-    -- Skeleton
     local lines = {}
     local rig = char:FindFirstChild("Humanoid") and char.Humanoid.RigType
     local bones = (rig == Enum.HumanoidRigType.R15) and SKEL_BONES_R15 or SKEL_BONES_R6
@@ -338,13 +336,11 @@ local function updateESP(p)
         if highlights[p] then highlights[p].FillColor = col; highlights[p].OutlineColor = col end
     end
 
-    -- Glow update
     if highlights[p] then
         highlights[p].FillTransparency = CONFIG.GlowESP and 0.5 or 1
         highlights[p].OutlineTransparency = CONFIG.GlowESP and 0 or 1
     end
 
-    -- Skeleton update
     for i, pair in ipairs(bones) do
         local a = char:FindFirstChild(pair[1])
         local b = char:FindFirstChild(pair[2])
@@ -380,7 +376,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ============================================================
--- MENU
+-- MENU (UI FIX - NO SCROLLING FRAME)
 -- ============================================================
 local function buildMenu()
     local existing = CoreGui:FindFirstChild("MINEHUB_MENU") or LP.PlayerGui:FindFirstChild("MINEHUB_MENU")
@@ -393,8 +389,8 @@ local function buildMenu()
     if not success or not gui.Parent then gui.Parent = LP:WaitForChild("PlayerGui") end
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 320, 0, 280)
-    main.Position = UDim2.new(0.5, -160, 0.5, -140)
+    main.Size = UDim2.new(0, 320, 0, 380) -- Taller frame
+    main.Position = UDim2.new(0.5, -160, 0.5, -190)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -447,15 +443,14 @@ local function buildMenu()
     local activeTab = nil
 
     local function newPage(name)
-        local page = Instance.new("ScrollingFrame")
+        local page = Instance.new("Frame") -- Changed to Frame
         page.Size = UDim2.new(1, 0, 1, 0)
         page.BackgroundTransparency = 1
-        page.BorderSizePixel = 0
-        page.ScrollBarThickness = 2
-        page.AutomaticCanvasSize = Enum.AutomaticSize.Y
         page.Visible = false
         page.Parent = content
-        Instance.new("UIListLayout", page).Padding = UDim.new(0, 6)
+        local layout = Instance.new("UIListLayout", page)
+        layout.Padding = UDim.new(0, 6)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
         pages[name] = page
         return page
     end
@@ -585,7 +580,7 @@ local function buildMenu()
     makeToggle(aimPage, "Silent Aim", "SilentAim")
     makeToggle(aimPage, "Team Check", "TeamCheck")
     makeSlider(aimPage, "FOV", "FOV", 50, 800)
-    makeSlider(aimPage, "Smoothness", "Smoothness", 0.1, 1) -- 0.1 to 1
+    makeSlider(aimPage, "Smoothness", "Smoothness", 0.1, 1)
 
     local visPage = makeTab("Visuals")
     makeToggle(visPage, "Skeleton ESP (Red/Blue)", "SkeletonESP")
@@ -594,7 +589,7 @@ local function buildMenu()
     local miscPage = makeTab("Misc")
     makeToggle(miscPage, "No Recoil", "NoRecoil")
     makeToggle(miscPage, "Magic Bullet", "MagicBullet")
-    makeToggle(miscPage, "Long Range / One Hit Sniper", "LongRange")
+    makeToggle(miscPage, "Long Range / One Hit", "LongRange")
     makeToggle(miscPage, "Bring All Enemy (Orbit)", "BringAll")
     makeToggle(miscPage, "Huge Hitbox", "HugeHitbox")
 
@@ -641,4 +636,4 @@ LP.Chatted:Connect(function(msg)
     end
 end)
 
-print("[MINEHUB V2] Full Feature loaded.")
+print("[MINEHUB V2] UI Fixed.")
