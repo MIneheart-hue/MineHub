@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Native Neon Edition (Fixed Magenta Bug)
+-- MINEHUB  |  Bulletproof Edition (Fixed UI + Button)
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -35,50 +35,54 @@ local function createMenu()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = CoreGui
 
-    -- Main Container (Solid Black)
+    -- Main Container
     local main = Instance.new("Frame")
     main.Name = "Main"
     main.Size = UDim2.new(0, 260, 0, 210)
     main.Position = UDim2.new(0.5, -130, 0.5, -105)
-    main.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Solid Dark Gray
+    main.BackgroundTransparency = 0
     main.BorderSizePixel = 0
-    main.ClipsDescendants = false
+    main.ClipsDescendants = true
     main.Parent = gui
 
     local corner = Instance.new("UICorner", main)
     corner.CornerRadius = UDim.new(0, 8)
-
-    -- Natively drawn neon glow (No ImageLabels to break)
-    local strokeOuter = Instance.new("UIStroke", main)
-    strokeOuter.Color = CONFIG.Accent
-    strokeOuter.Thickness = 3
-    strokeOuter.Transparency = 0.3
     
-    local strokeInner = Instance.new("UIStroke", main)
-    strokeInner.Color = Color3.fromRGB(255, 255, 255)
-    strokeInner.Thickness = 1
-    strokeInner.Transparency = 0.5
+    -- Simple Pink Accent Line (No UIStroke)
+    local accentLine = Instance.new("Frame", main)
+    accentLine.Size = UDim2.new(1, 0, 0, 2)
+    accentLine.Position = UDim2.new(0, 0, 0, 0)
+    accentLine.BackgroundColor3 = CONFIG.Accent
+    accentLine.BorderSizePixel = 0
 
-    -- Title
+    -- Title & Close Button
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    title.BorderSizePixel = 0
+    title.Size = UDim2.new(1, -30, 0, 30)
+    title.Position = UDim2.new(0, 5, 0, 2)
+    title.BackgroundTransparency = 1
     title.Text = "MINEHUB"
     title.Font = Enum.Font.GothamBold
     title.TextSize = 14
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Parent = main
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 20, 0, 20)
+    closeBtn.Position = UDim2.new(1, -25, 0, 6)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    closeBtn.Text = "X"
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 12
+    closeBtn.TextColor3 = CONFIG.Accent
+    closeBtn.AutoButtonColor = false
+    closeBtn.Parent = main
+    local cCorner = Instance.new("UICorner", closeBtn)
+    cCorner.CornerRadius = UDim.new(0, 4)
     
-    local titleCorner = Instance.new("UICorner", title)
-    titleCorner.CornerRadius = UDim.new(0, 8)
-    
-    -- Fix bottom corners of title
-    local titleFix = Instance.new("Frame", title)
-    titleFix.Size = UDim2.new(1, 0, 0, 5)
-    titleFix.Position = UDim2.new(0, 0, 1, -5)
-    titleFix.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    titleFix.BorderSizePixel = 0
+    closeBtn.MouseButton1Click:Connect(function()
+        gui.Enabled = false
+    end)
 
     -- Tab Strip
     local tabs = Instance.new("Frame")
@@ -131,7 +135,7 @@ local function createMenu()
     local function makeTab(name)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0.3, -4, 1, 0)
-        btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         btn.BorderSizePixel = 0
         btn.Text = name
         btn.Font = Enum.Font.GothamMedium
@@ -153,7 +157,7 @@ local function createMenu()
                 if child:IsA("TextButton") then
                     local isActive = (child.Text == name)
                     TweenService:Create(child, TweenInfo.new(0.2), {
-                        BackgroundColor3 = isActive and Color3.fromRGB(35, 35, 35) or Color3.fromRGB(20, 20, 20),
+                        BackgroundColor3 = isActive and Color3.fromRGB(45, 45, 45) or Color3.fromRGB(25, 25, 25),
                         TextColor3 = isActive and CONFIG.Accent or Color3.fromRGB(150, 150, 150),
                     }):Play()
                 end
@@ -166,7 +170,7 @@ local function createMenu()
     local function makeToggle(parent, label, configKey)
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 30)
-        row.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+        row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         row.BorderSizePixel = 0
         row.Parent = parent
         local rCorner = Instance.new("UICorner", row)
@@ -186,7 +190,7 @@ local function createMenu()
         local knob = Instance.new("Frame")
         knob.Size = UDim2.new(0, 30, 0, 14)
         knob.Position = UDim2.new(1, -40, 0.5, -7)
-        knob.BackgroundColor3 = CONFIG[configKey] and CONFIG.Accent or Color3.fromRGB(40, 40, 40)
+        knob.BackgroundColor3 = CONFIG[configKey] and CONFIG.Accent or Color3.fromRGB(50, 50, 50)
         knob.BorderSizePixel = 0
         knob.Parent = row
         local kCorner = Instance.new("UICorner", knob)
@@ -210,7 +214,7 @@ local function createMenu()
             CONFIG[configKey] = not CONFIG[configKey]
             local on = CONFIG[configKey]
             TweenService:Create(knob, TweenInfo.new(0.15, Enum.EasingStyle.Quint), {
-                BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(40, 40, 40),
+                BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(50, 50, 50),
             }):Play()
             TweenService:Create(pill, TweenInfo.new(0.15, Enum.EasingStyle.Quint), {
                 Position = on and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5),
@@ -221,7 +225,7 @@ local function createMenu()
     local function makeSlider(parent, label, configKey, min, max, step)
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 36)
-        row.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+        row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         row.BorderSizePixel = 0
         row.Parent = parent
         local rCorner = Instance.new("UICorner", row)
@@ -241,7 +245,7 @@ local function createMenu()
         local bar = Instance.new("Frame")
         bar.Size = UDim2.new(1, -20, 0, 3)
         bar.Position = UDim2.new(0, 10, 0, 26)
-        bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        bar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         bar.BorderSizePixel = 0
         bar.Parent = row
         local bCorner = Instance.new("UICorner", bar)
@@ -318,7 +322,7 @@ local function createMenu()
         Size = UDim2.new(0, 260, 0, 210),
     }):Play()
 
-    -- INSERT KEYBIND TO HIDE/SHOW
+    -- INSERT KEYBIND
     UserInput.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.Insert then
@@ -421,4 +425,4 @@ RunService:BindToRenderStep("MINEHUB_NoRecoil", Enum.RenderPriority.Camera.Value
     Camera.CFrame = CFrame.new(Camera.CFrame.Position) * rot
 end)
 
-print("[MINEHUB] Native Neon UI loaded. Press INSERT to toggle.")
+print("[MINEHUB] Bulletproof UI loaded. Press INSERT to toggle.")
