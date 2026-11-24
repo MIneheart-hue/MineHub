@@ -1,4 +1,4 @@
-print("[MINEHUB] Loaded successfully.")
+print("[MINEHUB] Magic Bullet Loaded.")
 
 local Players       = game:GetService("Players")
 local RunService    = game:GetService("RunService")
@@ -9,12 +9,10 @@ local LocalPlayer   = Players.LocalPlayer
 local Camera        = Workspace.CurrentCamera
 
 local CONFIG = {
-    SilentAim   = true,
     MagicBullet = true,
     Aimbot      = true,
     ESP         = true,
     NoRecoil    = true,
-    Wallbang    = true,
     AimKey      = Enum.UserInputType.MouseButton2, -- RMB
     FOV         = 150,
     Smoothness  = 0.45, 
@@ -359,4 +357,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Magic Bullet loaded. Hold [RMB] to shoot through walls.")
+print("[MINEHUB] Magic Bullet loaded. Hold [RMB] to aim.")
