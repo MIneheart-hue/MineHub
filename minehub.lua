@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Ultimate Edition (Box Math Fix + Watermark)
+-- MINEHUB  |  Solara-Compatible (No Drawing API)
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -25,8 +25,12 @@ local CONFIG = {
 }
 
 -- ============================================================
--- DRAWING API ESP (Fixed Box Math)
+-- NATIVE ROBLOX ESP (BoxHandleAdornment)
 -- ============================================================
+local espFolder = Instance.new("Folder")
+espFolder.Name = "MINEHUB_ESP"
+espFolder.Parent = CoreGui
+
 local espTable = {}
 
 local function isEnemy(player)
@@ -36,76 +40,50 @@ local function isEnemy(player)
 end
 
 local function createESP(player)
-    if not isEnemy(player) or espTable[player] then return end
-    
-    local box = Drawing.new("Square")
-    box.Thickness = 1
-    box.Color = CONFIG.Accent
-    box.Filled = false
-    box.Visible = false
+    if not isEnemy(player) then return end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp or espTable[player] then return end
 
-    espTable[player] = {Box = box}
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "ESP_Box"
+    box.Adornee = hrp
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Size = Vector3.new(4, 6, 2) -- Roughly the size of a Roblox character
+    box.Color3 = CONFIG.Accent
+    box.Transparency = 0.5
+    box.Parent = espFolder
+
+    espTable[player] = box
+end
+
+local function removeESP(player)
+    if espTable[player] then
+        espTable[player]:Destroy()
+        espTable[player] = nil
+    end
 end
 
 Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function() createESP(p) end)
-    createESP(p)
+    p.CharacterAdded:Connect(function() 
+        task.wait(1) 
+        if CONFIG.ESP then createESP(p) end 
+    end)
 end)
-Players.PlayerRemoving:Connect(function(p)
-    if espTable[p] then
-        espTable[p].Box:Remove()
-        espTable[p] = nil
-    end
-end)
-for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+Players.PlayerRemoving:Connect(removeESP)
 
--- FOV Circle
-local fovCircle = Drawing.new("Circle")
-fovCircle.Thickness = 1
-fovCircle.Color = CONFIG.Accent
-fovCircle.Filled = false
-fovCircle.Visible = true
-
-RunService.RenderStepped:Connect(function()
-    -- ESP Update
-    for player, esp in pairs(espTable) do
-        if not CONFIG.ESP or not player.Character then
-            esp.Box.Visible = false
-            continue
-        end
-
-        local char = player.Character
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-
-        if hrp and hum and hum.Health > 0 then
-            local pos = hrp.Position
-            local topScreen, onScreen1 = Camera:WorldToViewportPoint(pos + Vector3.new(0, 3, 0))
-            local botScreen, onScreen2 = Camera:WorldToViewportPoint(pos - Vector3.new(0, 3, 0))
-
-            if onScreen1 and onScreen2 then
-                local height = math.abs(botScreen.Y - topScreen.Y)
-                local width = height / 2
-
-                if height > 5 then
-                    esp.Box.Size = Vector2.new(width, height)
-                    esp.Box.Position = Vector2.new(topScreen.X - width/2, topScreen.Y)
-                    esp.Box.Visible = true
-                else
-                    esp.Box.Visible = false
-                end
-            else
-                esp.Box.Visible = false
+task.spawn(function()
+    while task.wait(1) do
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and CONFIG.ESP then
+                if not espTable[p] then createESP(p) end
+            elseif not CONFIG.ESP then
+                removeESP(p)
             end
-        else
-            esp.Box.Visible = false
         end
     end
-
-    -- FOV Circle Update
-    fovCircle.Position = Camera.ViewportSize / 2
-    fovCircle.Radius = CONFIG.FOV
-    fovCircle.Visible = CONFIG.Aimbot or CONFIG.SilentAim
 end)
 
 -- ============================================================
@@ -155,19 +133,6 @@ local function createMenu()
     closeBtn.Parent = main
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
     closeBtn.MouseButton1Click:Connect(function() gui.Enabled = false end)
-
-    -- Watermark (Shows when menu is hidden)
-    local watermark = Instance.new("TextLabel")
-    watermark.Size = UDim2.new(0, 200, 0, 20)
-    watermark.Position = UDim2.new(0, 10, 0, 10)
-    watermark.BackgroundTransparency = 1
-    watermark.Text = "[MINEHUB] RightShift to toggle"
-    watermark.Font = Enum.Font.GothamBold
-    watermark.TextSize = 12
-    watermark.TextColor3 = CONFIG.Accent
-    watermark.TextXAlignment = Enum.TextXAlignment.Left
-    watermark.Visible = false
-    watermark.Parent = gui
 
     local tabs = Instance.new("Frame")
     tabs.Size = UDim2.new(1, -20, 0, 25)
@@ -372,7 +337,6 @@ local function createMenu()
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.RightShift then
             gui.Enabled = not gui.Enabled
-            watermark.Visible = not gui.Enabled
         end
     end)
 end
@@ -443,4 +407,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Fixed Boxes & Menu loaded. RightShift to toggle.")
+print("[MINEHUB] Solara-compatible loaded. Hold [K] to aim, [RightShift] to toggle menu.")
