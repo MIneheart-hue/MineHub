@@ -1,6 +1,4 @@
--- ============================================================
--- MINEHUB  |  Sticky RMB Aimbot + ESP + Wallbang
--- ============================================================
+print("[MINEHUB] Loaded successfully.")
 
 local Players       = game:GetService("Players")
 local RunService    = game:GetService("RunService")
@@ -11,20 +9,20 @@ local LocalPlayer   = Players.LocalPlayer
 local Camera        = Workspace.CurrentCamera
 
 local CONFIG = {
-    SilentAim  = true,
-    Aimbot     = true,
-    ESP        = true,
-    NoRecoil   = true,
-    Wallbang   = true,
-    AimKey     = Enum.UserInputType.MouseButton2, -- RMB
-    FOV        = 150,
-    Smoothness = 0.45, -- Super sticky
-    MaxDist    = 500, 
-    TeamCheck  = true,
-    AimPart    = "Head",
-    Accent     = Color3.fromRGB(255, 0, 150), 
-    EnemyColor = Color3.fromRGB(255, 0, 0),
-    TeamColor  = Color3.fromRGB(0, 150, 255),
+    SilentAim   = true,
+    MagicBullet = true,
+    Aimbot      = true,
+    ESP         = true,
+    NoRecoil    = true,
+    Wallbang    = true,
+    AimKey      = Enum.UserInputType.MouseButton2, -- RMB
+    FOV         = 150,
+    Smoothness  = 0.45, 
+    TeamCheck   = true,
+    AimPart     = "Head",
+    Accent      = Color3.fromRGB(255, 0, 150), 
+    EnemyColor  = Color3.fromRGB(255, 0, 0),
+    TeamColor   = Color3.fromRGB(0, 150, 255),
 }
 
 -- ============================================================
@@ -237,14 +235,13 @@ pcall(function()
             CONFIG[configKey] = not CONFIG[configKey]
             local on = CONFIG[configKey]
             knob.BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(50, 50, 50)
-            pill.Position = on and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
+            pill.Position = on and UDim2.new(1, -13, 0.5, -5) or UDim.new(0, 3, 0.5, -5)
         end)
     end
 
     local aimPage = makeTab("Aim")
+    makeToggle(aimPage, "Magic Bullet (RMB)", "MagicBullet")
     makeToggle(aimPage, "Camera Aimbot (RMB)", "Aimbot")
-    makeToggle(aimPage, "Silent Aim (RMB)", "SilentAim")
-    makeToggle(aimPage, "Wallbang (RMB)", "Wallbang")
 
     local visPage = makeTab("Visual")
     makeToggle(visPage, "ESP", "ESP")
@@ -282,7 +279,7 @@ pcall(function()
 end)
 
 -- ============================================================
--- SAFE AIMBOT & SILENT AIM & WALLBANG
+-- MAGIC BULLET & AIMBOT
 -- ============================================================
 local function isAiming()
     return UserInput:IsMouseButtonPressed(CONFIG.AimKey)
@@ -314,31 +311,27 @@ local function getClosestTarget()
 end
 
 pcall(function()
-    -- Silent Aim Hook
-    local mouse = LocalPlayer:GetMouse()
-    local oldIndex
-    oldIndex = hookmetamethod(game, "__index", function(self, key)
-        if CONFIG.SilentAim and isAiming() and self == mouse and (key == "Hit" or key == "Target") then
-            local t = getClosestTarget()
-            if t then return t.Position end
-        end
-        return oldIndex(self, key)
-    end)
-
-    -- Wallbang Hook
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
-        if not checkcaller() and CONFIG.Wallbang and isAiming() and (method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") then
+        if not checkcaller() and (method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") then
             local args = {...}
-            if method == "Raycast" then
-                local params = args[3]
-                if typeof(params) == "RaycastParams" then
-                    params.FilterType = Enum.RaycastFilterType.Exclude
-                    params.FilterDescendantsInstances = {Workspace.CurrentCamera, LocalPlayer.Character}
+            if CONFIG.MagicBullet and isAiming() then
+                local target = getClosestTarget()
+                if target then
+                    if method == "Raycast" then
+                        local origin = args[1]
+                        local direction = args[2]
+                        args[2] = (target.Position - origin).Unit * direction.Magnitude
+                        args[3] = RaycastParams.new()
+                        args[3].FilterType = Enum.RaycastFilterType.Exclude
+                        args[3].FilterDescendantsInstances = {LocalPlayer.Character, Workspace.CurrentCamera}
+                    elseif method:find("FindPartOnRay") then
+                        local ray = args[1]
+                        args[1] = Ray.new(ray.Origin, (target.Position - ray.Origin).Unit * ray.Direction.Magnitude)
+                        args[2] = {LocalPlayer.Character, Workspace.CurrentCamera}
+                    end
                 end
-            elseif method:find("FindPartOnRay") then
-                args[2] = {Workspace.CurrentCamera, LocalPlayer.Character}
             end
             return oldNamecall(self, table.unpack(args))
         end
@@ -366,4 +359,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Sticky RMB Aimbot Loaded. Hold [RMB] to aim, [RightShift] to toggle menu.")
+print("[MINEHUB] Magic Bullet loaded. Hold [RMB] to shoot through walls.")
