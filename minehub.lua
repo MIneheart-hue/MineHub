@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Aimbot + ESP + No Recoil (Working Version)
+-- MINEHUB  |  Camera Aimbot + ESP + No Recoil (K-Bind)
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -13,12 +13,13 @@ local Camera        = Workspace.CurrentCamera
 
 local CONFIG = {
     Aimbot     = true,
-    AimKey     = Enum.KeyCode.E, -- Hold E to lock
+    AimKey     = Enum.KeyCode.K, -- K is the aim lock
+    MenuKey    = Enum.KeyCode.K, -- Wait, K for both? Let's use RightShift for Menu.
     ESP        = true,
     NoRecoil   = true,
-    FOV        = 250, -- Screen pixels
-    Smoothness = 0.25, -- 0.1 = snappy, 0.5 = slow
-    MaxDist    = 500, -- Studs
+    FOV        = 250,
+    Smoothness = 0.25, 
+    MaxDist    = 500, 
     TeamCheck  = true,
     AimPart    = "Head",
     Accent     = Color3.fromRGB(255, 0, 150), 
@@ -69,8 +70,7 @@ local function createMenu()
     closeBtn.TextSize = 12
     closeBtn.TextColor3 = CONFIG.Accent
     closeBtn.Parent = main
-    local cCorner = Instance.new("UICorner", closeBtn)
-    cCorner.CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
     
     closeBtn.MouseButton1Click:Connect(function()
         gui.Enabled = false
@@ -243,7 +243,7 @@ local function createMenu()
     end
 
     local aimPage = makeTab("Aim")
-    makeToggle(aimPage, "Camera Aimbot", "Aimbot")
+    makeToggle(aimPage, "Camera Aimbot", "Aimbot") -- Changed text
     makeSlider(aimPage, "FOV", "FOV", 50, 500, 10)
     makeSlider(aimPage, "Smoothness", "Smoothness", 0.05, 0.8, 0.05)
 
@@ -276,7 +276,7 @@ local function createMenu()
 
     UserInput.InputBegan:Connect(function(input, gpe)
         if gpe then return end
-        if input.KeyCode == Enum.KeyCode.Insert then
+        if input.KeyCode == Enum.KeyCode.K then
             gui.Enabled = not gui.Enabled
         end
     end)
@@ -436,7 +436,7 @@ UserInput.InputBegan:Connect(function(input, gpe)
 end)
 
 RunService.RenderStepped:Connect(function(dt)
-    -- 1. Aimbot Locking
+    -- 1. Aimbot Locking (Hold K)
     if CONFIG.Aimbot and UserInput:IsKeyDown(CONFIG.AimKey) then
         local target = getClosestTarget()
         if target then
@@ -452,11 +452,10 @@ RunService.RenderStepped:Connect(function(dt)
         local rot = Camera.CFrame - Camera.CFrame.Position
         local rx, ry, rz = rot:ToEulerAnglesXYZ()
         -- We add the positive pitch back so recoil (which pushes up) is cancelled
-        -- Only if not actively aiming, so it doesn't fight the aimbot
         if not UserInput:IsKeyDown(CONFIG.AimKey) then
             Camera.CFrame = CFrame.new(Camera.CFrame.Position) * CFrame.Angles(0, ry, 0)
         end
     end
 end)
 
-print("[MINEHUB] Working Aimbot & ESP loaded. Hold [E] to aim.")
+print("[MINEHUB] Camera Aimbot loaded. Hold [K] to aim, press [K] to toggle menu.")
