@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Neon Edition
+-- MINEHUB  |  Neon Edition (Fixed + Keybind)
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -22,7 +22,7 @@ local CONFIG = {
     TeamCheck  = true,
     AimPart    = "Head",
     ESPColor   = Color3.fromRGB(255, 0, 150),
-    Accent     = Color3.fromRGB(255, 0, 150),
+    Accent     = Color3.fromRGB(255, 0, 150), 
 }
 
 local function createMenu()
@@ -35,27 +35,30 @@ local function createMenu()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = CoreGui
 
+    -- Main Container
     local main = Instance.new("Frame")
     main.Name = "Main"
-    main.Size = UDim2.new(0, 260, 0, 200)
-    main.Position = UDim2.new(0.5, -130, 0.5, -100)
-    main.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+    main.Size = UDim2.new(0, 260, 0, 210)
+    main.Position = UDim2.new(0.5, -130, 0.5, -105)
+    main.BackgroundColor3 = Color3.fromRGB(5, 5, 5) -- Pure Black Core (Fixes Magenta Box)
     main.BorderSizePixel = 0
-    main.ClipsDescendants = true
+    main.ClipsDescendants = false
     main.Parent = gui
 
     local corner = Instance.new("UICorner", main)
     corner.CornerRadius = UDim.new(0, 10)
 
+    -- Neon Stroke
     local stroke = Instance.new("UIStroke", main)
     stroke.Color = CONFIG.Accent
     stroke.Thickness = 2
     stroke.Transparency = 0.1
     
+    -- Glow (sized down slightly so it doesn't cover UI)
     local glow = Instance.new("ImageLabel", main)
     glow.BackgroundTransparency = 1
-    glow.Size = UDim2.new(1, 40, 1, 40)
-    glow.Position = UDim2.new(0, -20, 0, -20)
+    glow.Size = UDim2.new(1, 20, 1, 20)
+    glow.Position = UDim2.new(0, -10, 0, -10)
     glow.Image = "rbxassetid://5028857472"
     glow.ImageColor3 = CONFIG.Accent
     glow.ImageTransparency = 0.5
@@ -63,11 +66,12 @@ local function createMenu()
     glow.Parent = main
 
     TweenService:Create(glow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        ImageTransparency = 0.8,
-        Size = UDim2.new(1, 60, 1, 60),
-        Position = UDim2.new(0, -30, 0, -30)
+        ImageTransparency = 0.7,
+        Size = UDim2.new(1, 30, 1, 30),
+        Position = UDim2.new(0, -15, 0, -15)
     }):Play()
 
+    -- Title
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0, 30)
     title.BackgroundTransparency = 1
@@ -77,6 +81,7 @@ local function createMenu()
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Parent = main
 
+    -- Tab Strip
     local tabs = Instance.new("Frame")
     tabs.Size = UDim2.new(1, -20, 0, 25)
     tabs.Position = UDim2.new(0, 10, 0, 30)
@@ -92,6 +97,7 @@ local function createMenu()
     tabList.Padding = UDim.new(0, 5)
     tabList.VerticalAlignment = Enum.VerticalAlignment.Center
 
+    -- Content
     local content = Instance.new("Frame")
     content.Size = UDim2.new(1, -20, 1, -65)
     content.Position = UDim2.new(0, 10, 0, 60)
@@ -310,8 +316,16 @@ local function createMenu()
 
     main.Size = UDim2.new(0, 0, 0, 0)
     TweenService:Create(main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 260, 0, 200),
+        Size = UDim2.new(0, 260, 0, 210),
     }):Play()
+
+    -- INSERT KEYBIND TO HIDE/SHOW
+    UserInput.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == Enum.KeyCode.Insert then
+            gui.Enabled = not gui.Enabled
+        end
+    end)
 
     return gui
 end
@@ -408,4 +422,4 @@ RunService:BindToRenderStep("MINEHUB_NoRecoil", Enum.RenderPriority.Camera.Value
     Camera.CFrame = CFrame.new(Camera.CFrame.Position) * rot
 end)
 
-print("[MINEHUB] Neon UI loaded.")
+print("[MINEHUB] Neon UI loaded. Press INSERT to toggle.")
