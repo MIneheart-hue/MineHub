@@ -16,6 +16,7 @@ local CONFIG = {
     NoRecoil     = true,
     LongRange    = true,
     TeamCheck    = true,
+    BringAll     = false, -- New Feature
     AimPart      = "Head",
     FOV          = 300,
     Accent       = Color3.fromRGB(255, 0, 150),
@@ -74,6 +75,33 @@ RunService.RenderStepped:Connect(function()
         local t = getTarget()
         if t then
             Cam.CFrame = CFrame.new(Cam.CFrame.Position, t.Position)
+        end
+    end
+end)
+
+-- ============================================================
+-- BRING ALL / ORBIT (Teleports enemies to you)
+-- ============================================================
+RunService.Heartbeat:Connect(function()
+    if not CONFIG.BringAll then return end
+    local myChar = LP.Character
+    if not myChar then return end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    
+    local offset = 0
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and (not CONFIG.TeamCheck or p.Team ~= LP.Team) then
+            local char = p.Character
+            if char then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if root and hum and hum.Health > 0 then
+                    -- Teleports them in a circle around you
+                    root.CFrame = myRoot.CFrame * CFrame.new(math.cos(offset) * 5, 0, math.sin(offset) * 5)
+                    offset = offset + (math.pi * 2 / #Players:GetPlayers())
+                end
+            end
         end
     end
 end)
@@ -271,15 +299,14 @@ local function buildMenu()
     gui.Name = "MINEHUB_MENU"
     gui.ResetOnSpawn = false
     
-    -- Solara fallback for CoreGui
     local success = pcall(function() gui.Parent = CoreGui end)
     if not success or not gui.Parent then
         gui.Parent = LP:WaitForChild("PlayerGui")
     end
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 200, 0, 260)
-    main.Position = UDim2.new(0.5, -100, 0.5, -130)
+    main.Size = UDim2.new(0, 200, 0, 290)
+    main.Position = UDim2.new(0.5, -100, 0.5, -145)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -370,6 +397,7 @@ local function buildMenu()
     makeToggle("Team Check", "TeamCheck")
     makeToggle("Long Range", "LongRange")
     makeToggle("No Recoil", "NoRecoil")
+    makeToggle("Bring All (Orbit)", "BringAll") -- Added to Menu
 
     local dragging, dragStart, startPos
     title.InputBegan:Connect(function(input)
@@ -406,4 +434,4 @@ LP.Chatted:Connect(function(msg)
     end
 end)
 
-print("[MINEHUB] Auto-Lock + Menu loaded. Type ;menu to open.")
+print("[MINEHUB] Auto-Lock + Bring All loaded. Type ;menu to open.")
