@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Team ESP + Wallbang + Vehicle Destroyer
+-- MINEHUB  |  Solara-Safe Ultimate Edition
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -30,65 +30,66 @@ local CONFIG = {
 }
 
 -- ============================================================
--- NATIVE ROBLOX ESP (Team Colors)
+-- SAFE ROBLOX ESP (Team Colors)
 -- ============================================================
-local espFolder = Instance.new("Folder")
-espFolder.Name = "MINEHUB_ESP"
-espFolder.Parent = CoreGui
+pcall(function()
+    local espFolder = Instance.new("Folder")
+    espFolder.Name = "MINEHUB_ESP"
+    espFolder.Parent = CoreGui
+    local espTable = {}
 
-local espTable = {}
+    local function createESP(player)
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp or espTable[player] then return end
 
-local function createESP(player)
-    local char = player.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp or espTable[player] then return end
+        local isTeam = (player.Team == LocalPlayer.Team)
+        local color = isTeam and CONFIG.TeamColor or CONFIG.EnemyColor
 
-    local isTeam = (player.Team == LocalPlayer.Team)
-    local color = isTeam and CONFIG.TeamColor or CONFIG.EnemyColor
+        local box = Instance.new("BoxHandleAdornment")
+        box.Name = "ESP_Box"
+        box.Adornee = hrp
+        box.AlwaysOnTop = true
+        box.ZIndex = 5
+        box.Size = Vector3.new(4, 6, 2)
+        box.Color3 = color
+        box.Transparency = 0.5
+        box.Parent = espFolder
 
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = "ESP_Box"
-    box.Adornee = hrp
-    box.AlwaysOnTop = true
-    box.ZIndex = 5
-    box.Size = Vector3.new(4, 6, 2)
-    box.Color3 = color
-    box.Transparency = 0.5
-    box.Parent = espFolder
-
-    espTable[player] = box
-end
-
-local function removeESP(player)
-    if espTable[player] then
-        espTable[player]:Destroy()
-        espTable[player] = nil
+        espTable[player] = box
     end
-end
 
-Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function() 
-        task.wait(1) 
-        if CONFIG.ESP then createESP(p) end 
-    end)
-end)
-Players.PlayerRemoving:Connect(removeESP)
-
-task.spawn(function()
-    while task.wait(1) do
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and CONFIG.ESP then
-                if not espTable[p] then createESP(p) end
-            elseif not CONFIG.ESP then
-                removeESP(p)
-            end
+    local function removeESP(player)
+        if espTable[player] then
+            espTable[player]:Destroy()
+            espTable[player] = nil
         end
     end
+
+    Players.PlayerAdded:Connect(function(p)
+        p.CharacterAdded:Connect(function() 
+            task.wait(1) 
+            if CONFIG.ESP then createESP(p) end 
+        end)
+    end)
+    Players.PlayerRemoving:Connect(removeESP)
+
+    task.spawn(function()
+        while task.wait(1) do
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character and CONFIG.ESP then
+                    if not espTable[p] then createESP(p) end
+                elseif not CONFIG.ESP then
+                    removeESP(p)
+                end
+            end
+        end
+    end)
 end)
 
 -- ============================================================
--- UI MENU
+-- UI MENU (Always runs first so it never dies)
 -- ============================================================
 local function createMenu()
     local existing = CoreGui:FindFirstChild("MINEHUB")
@@ -304,7 +305,7 @@ local function createMenu()
     local aimPage = makeTab("Aim")
     makeToggle(aimPage, "Silent Aim", "SilentAim")
     makeToggle(aimPage, "Camera Aimbot", "Aimbot")
-    makeToggle(aimPage, "Wallbang (Shoot Walls)", "Wallbang")
+    makeToggle(aimPage, "Wallbang", "Wallbang")
     makeSlider(aimPage, "FOV", "FOV", 50, 500, 10)
     makeSlider(aimPage, "Smoothness", "Smoothness", 0.05, 0.8, 0.05)
 
@@ -343,98 +344,90 @@ local function createMenu()
         end
     end)
 end
-createMenu()
+pcall(createMenu)
 
 -- ============================================================
--- TARGET & SILENT AIM HOOK
+-- SAFE WALLBANG (Using __namecall)
+-- ============================================================
+pcall(function()
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        if not checkcaller() and CONFIG.Wallbang and (method == "Raycast" or method == "FindPartOnRay" or method == "FindPartOnRayWithIgnoreList") then
+            local args = {...}
+            if method == "Raycast" then
+                local params = args[3]
+                if typeof(params) == "RaycastParams" then
+                    params.FilterType = Enum.RaycastFilterType.Exclude
+                    params.FilterDescendantsInstances = {Workspace.CurrentCamera, LocalPlayer.Character}
+                end
+            elseif method:find("FindPartOnRay") then
+                args[2] = {Workspace.CurrentCamera, LocalPlayer.Character}
+            end
+            return oldNamecall(self, table.unpack(args))
+        end
+        return oldNamecall(self, ...)
+    end)
+end)
+
+-- ============================================================
+-- VEHICLE NUKE [V]
+-- ============================================================
+UserInput.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.V and CONFIG.VehicleNuke then
+        local ray = Ray.new(Camera.CFrame.Position, Camera.CFrame.LookVector * 500)
+        local hit = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character, Workspace.CurrentCamera})
+        if hit then
+            local model = hit:FindFirstAncestorOfClass("Model")
+            if model then
+                model:BreakJoints()
+                if model.Destroy then model:Destroy() end
+            end
+        end
+    end
+end)
+
+-- ============================================================
+-- AIMBOT & SILENT AIM
 -- ============================================================
 local function getClosestTarget()
     local best, bestDist = nil, CONFIG.FOV
     local center = Camera.ViewportSize / 2
-
     for _, p in ipairs(Players:GetPlayers()) do
-        if p == LocalPlayer then continue end
-        if CONFIG.TeamCheck and p.Team == LocalPlayer.Team then continue end
-        
-        local char = p.Character
-        if not char then continue end
-        local part = char:FindFirstChild(CONFIG.AimPart) or char:FindFirstChild("HumanoidRootPart")
-        if not part then continue end
-        
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not hum or hum.Health <= 0 then continue end
-
-        local sp, onScreen = Camera:WorldToViewportPoint(part.Position)
-        if onScreen then
-            local dist = (Vector2.new(sp.X, sp.Y) - center).Magnitude
-            if dist < bestDist then 
-                best, bestDist = part, dist 
+        local isEnemy = p ~= LocalPlayer and (not CONFIG.TeamCheck or p.Team ~= LocalPlayer.Team)
+        if isEnemy then
+            local char = p.Character
+            if char then
+                local part = char:FindFirstChild(CONFIG.AimPart) or char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if part and hum and hum.Health > 0 then
+                    local sp, onScreen = Camera:WorldToViewportPoint(part.Position)
+                    if onScreen then
+                        local dist = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+                        if dist < bestDist then 
+                            best, bestDist = part, dist 
+                        end
+                    end
+                end
             end
         end
     end
     return best
 end
 
-local mouse = LocalPlayer:GetMouse()
-local oldIndex
-oldIndex = hookmetamethod(game, "__index", function(self, key)
-    if CONFIG.SilentAim and self == mouse and (key == "Hit" or key == "Target") then
-        local t = getClosestTarget()
-        if t then return t.Position end
-    end
-    return oldIndex(self, key)
-end)
-
--- ============================================================
--- WALLBANG (Bypasses walls for raycasts)
--- ============================================================
-local oldRaycast
-oldRaycast = hookfunction(Workspace.Raycast, function(self, origin, direction, params)
-    if CONFIG.Wallbang and params then
-        params.FilterType = Enum.RaycastFilterType.Exclude
-        params.FilterDescendantsInstances = {Workspace.CurrentCamera, LocalPlayer.Character}
-    end
-    return oldRaycast(self, origin, direction, params)
-end)
-
-local oldFindPart
-oldFindPart = hookfunction(Workspace.FindPartOnRayWithIgnoreList, function(self, ray, ignoreList, ...)
-    if CONFIG.Wallbang then
-        ignoreList = {Workspace.CurrentCamera, LocalPlayer.Character}
-    end
-    return oldFindPart(self, ray, ignoreList, ...)
-end)
-
--- ============================================================
--- VEHICLE NUKE [V]
--- ============================================================
-local function destroyVehicle()
-    if not CONFIG.VehicleNuke then return end
-    local ray = Ray.new(Camera.CFrame.Position, Camera.CFrame.LookVector * 500)
-    local ignore = {LocalPlayer.Character, Workspace.CurrentCamera}
-    local hit, pos, normal, mat = Workspace:FindPartOnRayWithIgnoreList(ray, ignore)
-    
-    if hit then
-        local model = hit:FindFirstAncestorOfClass("Model")
-        if model and (model:FindFirstChildOfClass("VehicleSeat") or model.Name:lower():find("car") or model.Name:lower():find("vehicle")) then
-            model:BreakJoints()
-            if model.Destroy then model:Destroy() end
-        elseif hit.Parent then
-            hit.Parent:BreakJoints()
+pcall(function()
+    local mouse = LocalPlayer:GetMouse()
+    local oldIndex
+    oldIndex = hookmetamethod(game, "__index", function(self, key)
+        if CONFIG.SilentAim and self == mouse and (key == "Hit" or key == "Target") then
+            local t = getClosestTarget()
+            if t then return t.Position end
         end
-    end
-end
-
-UserInput.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == CONFIG.NukeKey and CONFIG.VehicleNuke then
-        destroyVehicle()
-    end
+        return oldIndex(self, key)
+    end)
 end)
 
--- ============================================================
--- RENDER STEP (Aimbot & No Recoil)
--- ============================================================
 RunService.RenderStepped:Connect(function(dt)
     if CONFIG.Aimbot and UserInput:IsKeyDown(CONFIG.AimKey) then
         local target = getClosestTarget()
@@ -455,4 +448,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Ultimate loaded. Hold [K] to aim, [V] to nuke vehicle, [RightShift] to toggle menu.")
+print("[MINEHUB] Solara-Safe Ultimate loaded.")
