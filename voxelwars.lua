@@ -1,4 +1,4 @@
---[[ MINEHUB :: VOXEL WARS (Solara Safe) ]]
+--[[ MINEHUB :: VOXEL WARS (Solara Safe + Menu) ]]
 print("[MINEHUB] Loaded. (Hooks disabled for Solara)")
 
 local Players    = game:GetService("Players")
@@ -263,5 +263,137 @@ RunService.RenderStepped:Connect(function()
     for p, _ in pairs(skels) do updateSkeleton(p) end
 end)
 
-print("[MINEHUB] Aimbot / ESP / Skeleton / Long Range live.")
-print("[MINEHUB] Hold RMB to lock. Have fun, Kanha.")
+-- ============================================================
+-- MENU (Draggable, No Hooks Required)
+-- ============================================================
+pcall(function()
+    local existing = CoreGui:FindFirstChild("MINEHUB_MENU")
+    if existing then existing:Destroy() end
+
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "MINEHUB_MENU"
+    gui.ResetOnSpawn = false
+    gui.Parent = CoreGui
+
+    local main = Instance.new("Frame")
+    main.Size = UDim2.new(0, 200, 0, 230)
+    main.Position = UDim2.new(0.5, -100, 0.5, -115)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    main.BorderSizePixel = 0
+    main.Parent = gui
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 8)
+
+    local accent = Instance.new("Frame", main)
+    accent.Size = UDim2.new(1, 0, 0, 2)
+    accent.BackgroundColor3 = CONFIG.Accent
+    accent.BorderSizePixel = 0
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -30, 0, 30)
+    title.Position = UDim2.new(0, 5, 0, 2)
+    title.BackgroundTransparency = 1
+    title.Text = "MINEHUB"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Parent = main
+
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 20, 0, 20)
+    closeBtn.Position = UDim2.new(1, -25, 0, 6)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    closeBtn.Text = "X"
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 12
+    closeBtn.TextColor3 = CONFIG.Accent
+    closeBtn.Parent = main
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
+    closeBtn.MouseButton1Click:Connect(function() gui.Enabled = false end)
+
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, -20, 1, -40)
+    content.Position = UDim2.new(0, 10, 0, 35)
+    content.BackgroundTransparency = 1
+    content.Parent = main
+    Instance.new("UIListLayout", content).Padding = UDim.new(0, 6)
+
+    local function makeToggle(label, configKey)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 30)
+        row.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        row.Parent = content
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
+
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -50, 1, 0)
+        lbl.Position = UDim2.new(0, 10, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = label
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 12
+        lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = row
+
+        local knob = Instance.new("Frame")
+        knob.Size = UDim2.new(0, 30, 0, 14)
+        knob.Position = UDim2.new(1, -40, 0.5, -7)
+        knob.BackgroundColor3 = CONFIG[configKey] and CONFIG.Accent or Color3.fromRGB(50, 50, 50)
+        knob.Parent = row
+        Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+
+        local pill = Instance.new("Frame", knob)
+        pill.Size = UDim2.new(0, 10, 0, 10)
+        pill.Position = CONFIG[configKey] and UDim2.new(1, -13, 0.5, -5) or UDim2.new(0, 3, 0.5, -5)
+        pill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        Instance.new("UICorner", pill).CornerRadius = UDim.new(1, 0)
+
+        local click = Instance.new("TextButton")
+        click.Size = UDim2.new(1, 0, 1, 0)
+        click.BackgroundTransparency = 1
+        click.Text = ""
+        click.Parent = row
+
+        click.MouseButton1Click:Connect(function()
+            CONFIG[configKey] = not CONFIG[configKey]
+            local on = CONFIG[configKey]
+            knob.BackgroundColor3 = on and CONFIG.Accent or Color3.fromRGB(50, 50, 50)
+            pill.Position = on and UDim2.new(1, -13, 0.5, -5) or UDim.new(0, 3, 0.5, -5)
+        end)
+    end
+
+    makeToggle("Aimbot (RMB)", "Aimbot")
+    makeToggle("Box ESP", "BoxESP")
+    makeToggle("Skeleton ESP", "SkeletonESP")
+    makeToggle("Long Range", "LongRange")
+    makeToggle("No Recoil", "NoRecoil")
+
+    -- Dragging logic
+    local dragging, dragStart, startPos
+    title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+    UserInput.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInput.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    -- RightShift toggle
+    UserInput.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == Enum.KeyCode.RightShift then
+            gui.Enabled = not gui.Enabled
+        end
+    end)
+end)
+
+print("[MINEHUB] Menu loaded. RightShift to toggle.")
