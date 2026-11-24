@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Ultimate Edition
+-- MINEHUB  |  Ultimate Edition (Fixed ESP Boxes)
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -25,7 +25,7 @@ local CONFIG = {
 }
 
 -- ============================================================
--- DRAWING API ESP (Enemies Only)
+-- DRAWING API ESP (Fixed Box Math)
 -- ============================================================
 local espTable = {}
 
@@ -80,15 +80,20 @@ RunService.RenderStepped:Connect(function()
         local hum = char:FindFirstChildOfClass("Humanoid")
 
         if hrp and head and hum and hum.Health > 0 then
-            local headPos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1.5, 0))
-            local rootPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 1.5, 0))
-            
-            if onScreen then
-                local height = math.abs(headPos.Y - rootPos.Y)
-                local width = height / 1.5
+            -- Calculate 3D bounding box corners to screen space
+            local hrpPos = hrp.Position
+            local topPos = head.Position + Vector3.new(0, 0.5, 0)
+            local bottomPos = hrpPos - Vector3.new(0, 2.5, 0)
+
+            local topScreen, topOnScreen = Camera:WorldToViewportPoint(topPos)
+            local bottomScreen, bottomOnScreen = Camera:WorldToViewportPoint(bottomPos)
+
+            if topOnScreen and bottomOnScreen then
+                local height = math.abs(bottomScreen.Y - topScreen.Y)
+                local width = height / 1.8 -- Ratio of humanoid height to width
 
                 esp.Box.Size = Vector2.new(width, height)
-                esp.Box.Position = Vector2.new(headPos.X - width/2, headPos.Y)
+                esp.Box.Position = Vector2.new(topScreen.X - width/2, topScreen.Y)
                 esp.Box.Visible = true
             else
                 esp.Box.Visible = false
@@ -351,7 +356,6 @@ local function createMenu()
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 
-    -- RightShift to toggle
     UserInput.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.RightShift then
@@ -426,4 +430,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Ultimate loaded. Hold [K] to aim, [RightShift] to toggle menu.")
+print("[MINEHUB] Fixed Boxes loaded. Hold [K] to aim, [RightShift] to toggle menu.")
