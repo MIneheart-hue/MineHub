@@ -1,4 +1,4 @@
-print("[MINEHUB] Magic Bullet Loaded.")
+print("[MINEHUB] Hard-Lock Aimbot Loaded.")
 
 local Players       = game:GetService("Players")
 local RunService    = game:GetService("RunService")
@@ -11,11 +11,11 @@ local Camera        = Workspace.CurrentCamera
 local CONFIG = {
     MagicBullet = true,
     Aimbot      = true,
-    ESP         = true,
+    BoxESP      = true,
     NoRecoil    = true,
+    GodGuns     = true,
     AimKey      = Enum.UserInputType.MouseButton2, -- RMB
-    FOV         = 150,
-    Smoothness  = 0.45, 
+    FOV         = 250,
     TeamCheck   = true,
     AimPart     = "Head",
     Accent      = Color3.fromRGB(255, 0, 150), 
@@ -24,7 +24,22 @@ local CONFIG = {
 }
 
 -- ============================================================
--- SAFE ESP (Team Colors)
+-- FOV CIRCLE
+-- ============================================================
+local fovCircle = Drawing.new("Circle")
+fovCircle.Thickness = 1
+fovCircle.Color = CONFIG.Accent
+fovCircle.Filled = false
+fovCircle.Visible = true
+
+RunService.RenderStepped:Connect(function()
+    fovCircle.Position = Camera.ViewportSize / 2
+    fovCircle.Radius = CONFIG.FOV
+    fovCircle.Visible = CONFIG.Aimbot
+end)
+
+-- ============================================================
+-- BOX ESP
 -- ============================================================
 pcall(function()
     local espFolder = Instance.new("Folder")
@@ -57,7 +72,7 @@ pcall(function()
     Players.PlayerAdded:Connect(function(p)
         p.CharacterAdded:Connect(function() 
             task.wait(1) 
-            if CONFIG.ESP then createESP(p) end 
+            if CONFIG.BoxESP then createESP(p) end 
         end)
     end)
     Players.PlayerRemoving:Connect(function(p)
@@ -70,9 +85,9 @@ pcall(function()
     task.spawn(function()
         while task.wait(1) do
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and CONFIG.ESP then
+                if p ~= LocalPlayer and p.Character and CONFIG.BoxESP then
                     if not espTable[p] then createESP(p) end
-                elseif not CONFIG.ESP then
+                elseif not CONFIG.BoxESP then
                     if espTable[p] then
                         espTable[p]:Destroy()
                         espTable[p] = nil
@@ -82,6 +97,35 @@ pcall(function()
         end
     end)
 end)
+
+-- ============================================================
+-- GOD GUNS
+-- ============================================================
+local function patchGuns()
+    if not CONFIG.GodGuns or not LocalPlayer.Character then return end
+    for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
+        if tool:IsA("Tool") then
+            for _, v in ipairs(tool:GetDescendants()) do
+                if v:IsA("ValueBase") then
+                    local n = v.Name:lower()
+                    if n:find("damage") then v.Value = 9999 end
+                    if n:find("firerate") or n:find("fire rate") or n:find("cooldown") then v.Value = 0.01 end
+                    if n:find("range") or n:find("distance") then v.Value = 5000 end
+                end
+            end
+        end
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            task.wait(0.1)
+            patchGuns()
+        end
+    end)
+end)
+task.spawn(function() while task.wait(1) do patchGuns() end end)
 
 -- ============================================================
 -- MENU
@@ -242,9 +286,10 @@ pcall(function()
     makeToggle(aimPage, "Camera Aimbot (RMB)", "Aimbot")
 
     local visPage = makeTab("Visual")
-    makeToggle(visPage, "ESP", "ESP")
+    makeToggle(visPage, "Box ESP", "BoxESP")
 
     local miscPage = makeTab("Misc")
+    makeToggle(miscPage, "God Guns (1-Hit)", "GodGuns")
     makeToggle(miscPage, "No Recoil", "NoRecoil")
     makeToggle(miscPage, "Team Check", "TeamCheck")
 
@@ -341,10 +386,8 @@ RunService.RenderStepped:Connect(function(dt)
     if CONFIG.Aimbot and isAiming() then
         local target = getClosestTarget()
         if target then
-            local camPos = Camera.CFrame.Position
-            local desired = CFrame.new(camPos, target.Position)
-            local alpha = math.clamp(1 - math.exp(-CONFIG.Smoothness * 60 * dt), 0, 1)
-            Camera.CFrame = Camera.CFrame:Lerp(desired, alpha)
+            -- HARD LOCK (Instant Snap)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
         end
     end
 
@@ -357,4 +400,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Magic Bullet loaded. Hold [RMB] to aim.")
+print("[MINEHUB] Hard-Lock Aimbot & Box ESP loaded. Hold [RMB] to aim.")
