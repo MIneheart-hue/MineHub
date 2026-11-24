@@ -1,4 +1,4 @@
---[[ MINEHUB :: VOXEL WARS (Silent Magic + Skeleton) ]]
+--[[ MINEHUB :: VOXEL WARS (Stable Reset) ]]
 print("[MINEHUB] Loaded. Type ;menu to open.")
 
 local Players    = game:GetService("Players")
@@ -16,9 +16,9 @@ local CONFIG = {
     SilentAim    = true,
     TeamCheck    = true,
     AimPart      = "Head",
-    FOV          = 400,
-    EnemyColor   = Color3.fromRGB(255, 0, 0),   -- Red
-    TeamColor    = Color3.fromRGB(0, 150, 255), -- Blue
+    FOV          = 250,
+    EnemyColor   = Color3.fromRGB(255, 40, 40),   -- Red
+    TeamColor    = Color3.fromRGB(0, 150, 255),   -- Blue
     Accent       = Color3.fromRGB(255, 0, 150),
 }
 
@@ -31,9 +31,17 @@ fov.Color = CONFIG.Accent
 fov.Filled = false
 
 RunService.RenderStepped:Connect(function()
-    fov.Position = Cam.ViewportSize / 2
-    fov.Radius = CONFIG.FOV
-    fov.Visible = CONFIG.SilentAim
+    local char = LP.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    -- Only show FOV if alive
+    if hum and hum.Health > 0 then
+        fov.Position = Cam.ViewportSize / 2
+        fov.Radius = CONFIG.FOV
+        fov.Visible = CONFIG.SilentAim
+    else
+        fov.Visible = false
+    end
 end)
 
 -- ============================================================
@@ -65,9 +73,9 @@ local function getTarget()
 end
 
 -- ============================================================
--- SILENT AIM + MAGIC BULLET (Wrapped in pcall for Solara safety)
+-- SILENT AIM + MAGIC BULLET (Safe Hook)
 -- ============================================================
-local hookSuccess = pcall(function()
+pcall(function()
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
@@ -113,10 +121,6 @@ local hookSuccess = pcall(function()
         return oldNamecall(self, ...)
     end)
 end)
-
-if not hookSuccess then
-    print("[MINEHUB] Hook failed. Magic Bullet disabled (Executor not supported).")
-end
 
 -- ============================================================
 -- LONG RANGE + ONE HIT
@@ -166,10 +170,16 @@ LP.CharacterAdded:Connect(function(c)
 end)
 
 -- ============================================================
--- NO RECOIL
+-- NO RECOIL (Safely gated to only apply when alive)
 -- ============================================================
 RunService.RenderStepped:Connect(function()
     if not CONFIG.NoRecoil then return end
+    local char = LP.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    
+    -- Don't fight the respawn camera
+    if not hum or hum.Health <= 0 then return end
+    
     local rot = Cam.CFrame - Cam.CFrame.Position
     local _, ry, _ = rot:ToEulerAnglesXYZ()
     local target = CFrame.new(Cam.CFrame.Position) * CFrame.Angles(0, ry, 0)
@@ -177,7 +187,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ============================================================
--- SKELETON ESP ONLY
+-- SKELETON ESP
 -- ============================================================
 local skels = {}
 
@@ -232,7 +242,7 @@ local function updateSkeleton(p)
         return
     end
     
-    -- Update color dynamically based on team change
+    -- Update colors if team changes
     local isTeam = (p.Team == LP.Team)
     local col = isTeam and CONFIG.TeamColor or CONFIG.EnemyColor
     if entry.color ~= col then
@@ -415,4 +425,4 @@ LP.Chatted:Connect(function(msg)
     end
 end)
 
-print("[MINEHUB] Skeleton + Magic Bullet loaded.")
+print("[MINEHUB] Clean Reset Loaded.")
