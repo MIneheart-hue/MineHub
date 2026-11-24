@@ -1,5 +1,5 @@
 --[[ MINEHUB :: VOXEL WARS (Solara Auto-Lock) ]]
-print("[MINEHUB] Loaded. (Hooks disabled for Solara)")
+print("[MINEHUB] Loaded. Type ;menu in chat to open.")
 
 local Players    = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -15,9 +15,9 @@ local CONFIG = {
     SkeletonESP  = true,
     NoRecoil     = true,
     LongRange    = true,
+    TeamCheck    = true,
     AimPart      = "Head",
     FOV          = 300,
-    TeamCheck    = true,
     Accent       = Color3.fromRGB(255, 0, 150),
     EnemyColor   = Color3.fromRGB(255, 40, 40),
     TeamColor    = Color3.fromRGB(0, 150, 255),
@@ -260,18 +260,26 @@ end)
 -- ============================================================
 -- MENU
 -- ============================================================
-pcall(function()
+local function buildMenu()
     local existing = CoreGui:FindFirstChild("MINEHUB_MENU")
     if existing then existing:Destroy() end
+    
+    local pGuiCheck = LP:WaitForChild("PlayerGui"):FindFirstChild("MINEHUB_MENU")
+    if pGuiCheck then pGuiCheck:Destroy() end
 
     local gui = Instance.new("ScreenGui")
     gui.Name = "MINEHUB_MENU"
     gui.ResetOnSpawn = false
-    gui.Parent = CoreGui
+    
+    -- Solara fallback for CoreGui
+    local success = pcall(function() gui.Parent = CoreGui end)
+    if not success or not gui.Parent then
+        gui.Parent = LP:WaitForChild("PlayerGui")
+    end
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 200, 0, 230)
-    main.Position = UDim2.new(0.5, -100, 0.5, -115)
+    main.Size = UDim2.new(0, 200, 0, 260)
+    main.Position = UDim2.new(0.5, -100, 0.5, -130)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -359,10 +367,10 @@ pcall(function()
     makeToggle("Aimbot (Auto-Lock)", "Aimbot")
     makeToggle("Box ESP", "BoxESP")
     makeToggle("Skeleton ESP", "SkeletonESP")
+    makeToggle("Team Check", "TeamCheck")
     makeToggle("Long Range", "LongRange")
     makeToggle("No Recoil", "NoRecoil")
 
-    -- Dragging logic
     local dragging, dragStart, startPos
     title.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -387,6 +395,15 @@ pcall(function()
             gui.Enabled = not gui.Enabled
         end
     end)
+end
+
+pcall(buildMenu)
+
+LP.Chatted:Connect(function(msg)
+    if msg == ";menu" then
+        local m = LP.PlayerGui:FindFirstChild("MINEHUB_MENU") or CoreGui:FindFirstChild("MINEHUB_MENU")
+        if m then m.Enabled = not m.Enabled end
+    end
 end)
 
-print("[MINEHUB] Auto-Lock loaded. RightShift to toggle menu.")
+print("[MINEHUB] Auto-Lock + Menu loaded. Type ;menu to open.")
