@@ -1,5 +1,5 @@
 -- ============================================================
--- MINEHUB  |  Solara-Compatible (No Drawing API)
+-- MINEHUB  |  Team ESP + Wallbang + Vehicle Destroyer
 -- ============================================================
 
 local Players       = game:GetService("Players")
@@ -15,17 +15,22 @@ local CONFIG = {
     Aimbot     = true,
     ESP        = true,
     NoRecoil   = true,
+    Wallbang   = true,
+    VehicleNuke = true,
     AimKey     = Enum.KeyCode.K,
+    NukeKey    = Enum.KeyCode.V,
     FOV        = 150,
     Smoothness = 0.25, 
     MaxDist    = 500, 
     TeamCheck  = true,
     AimPart    = "Head",
     Accent     = Color3.fromRGB(255, 0, 150), 
+    EnemyColor = Color3.fromRGB(255, 0, 0),
+    TeamColor  = Color3.fromRGB(0, 150, 255),
 }
 
 -- ============================================================
--- NATIVE ROBLOX ESP (BoxHandleAdornment)
+-- NATIVE ROBLOX ESP (Team Colors)
 -- ============================================================
 local espFolder = Instance.new("Folder")
 espFolder.Name = "MINEHUB_ESP"
@@ -33,26 +38,22 @@ espFolder.Parent = CoreGui
 
 local espTable = {}
 
-local function isEnemy(player)
-    if player == LocalPlayer then return false end
-    if CONFIG.TeamCheck and player.Team == LocalPlayer.Team then return false end
-    return true
-end
-
 local function createESP(player)
-    if not isEnemy(player) then return end
     local char = player.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp or espTable[player] then return end
+
+    local isTeam = (player.Team == LocalPlayer.Team)
+    local color = isTeam and CONFIG.TeamColor or CONFIG.EnemyColor
 
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "ESP_Box"
     box.Adornee = hrp
     box.AlwaysOnTop = true
     box.ZIndex = 5
-    box.Size = Vector3.new(4, 6, 2) -- Roughly the size of a Roblox character
-    box.Color3 = CONFIG.Accent
+    box.Size = Vector3.new(4, 6, 2)
+    box.Color3 = color
     box.Transparency = 0.5
     box.Parent = espFolder
 
@@ -99,8 +100,8 @@ local function createMenu()
     gui.Parent = CoreGui
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 260, 0, 210)
-    main.Position = UDim2.new(0.5, -130, 0.5, -105)
+    main.Size = UDim2.new(0, 260, 0, 230)
+    main.Position = UDim2.new(0.5, -130, 0.5, -115)
     main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -303,6 +304,7 @@ local function createMenu()
     local aimPage = makeTab("Aim")
     makeToggle(aimPage, "Silent Aim", "SilentAim")
     makeToggle(aimPage, "Camera Aimbot", "Aimbot")
+    makeToggle(aimPage, "Wallbang (Shoot Walls)", "Wallbang")
     makeSlider(aimPage, "FOV", "FOV", 50, 500, 10)
     makeSlider(aimPage, "Smoothness", "Smoothness", 0.05, 0.8, 0.05)
 
@@ -311,6 +313,7 @@ local function createMenu()
 
     local miscPage = makeTab("Misc")
     makeToggle(miscPage, "No Recoil", "NoRecoil")
+    makeToggle(miscPage, "Vehicle Nuke [V]", "VehicleNuke")
     makeToggle(miscPage, "Team Check", "TeamCheck")
 
     tabBar:GetChildren()[1].MouseButton1Click:Fire()
@@ -383,10 +386,56 @@ oldIndex = hookmetamethod(game, "__index", function(self, key)
 end)
 
 -- ============================================================
+-- WALLBANG (Bypasses walls for raycasts)
+-- ============================================================
+local oldRaycast
+oldRaycast = hookfunction(Workspace.Raycast, function(self, origin, direction, params)
+    if CONFIG.Wallbang and params then
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = {Workspace.CurrentCamera, LocalPlayer.Character}
+    end
+    return oldRaycast(self, origin, direction, params)
+end)
+
+local oldFindPart
+oldFindPart = hookfunction(Workspace.FindPartOnRayWithIgnoreList, function(self, ray, ignoreList, ...)
+    if CONFIG.Wallbang then
+        ignoreList = {Workspace.CurrentCamera, LocalPlayer.Character}
+    end
+    return oldFindPart(self, ray, ignoreList, ...)
+end)
+
+-- ============================================================
+-- VEHICLE NUKE [V]
+-- ============================================================
+local function destroyVehicle()
+    if not CONFIG.VehicleNuke then return end
+    local ray = Ray.new(Camera.CFrame.Position, Camera.CFrame.LookVector * 500)
+    local ignore = {LocalPlayer.Character, Workspace.CurrentCamera}
+    local hit, pos, normal, mat = Workspace:FindPartOnRayWithIgnoreList(ray, ignore)
+    
+    if hit then
+        local model = hit:FindFirstAncestorOfClass("Model")
+        if model and (model:FindFirstChildOfClass("VehicleSeat") or model.Name:lower():find("car") or model.Name:lower():find("vehicle")) then
+            model:BreakJoints()
+            if model.Destroy then model:Destroy() end
+        elseif hit.Parent then
+            hit.Parent:BreakJoints()
+        end
+    end
+end
+
+UserInput.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == CONFIG.NukeKey and CONFIG.VehicleNuke then
+        destroyVehicle()
+    end
+end)
+
+-- ============================================================
 -- RENDER STEP (Aimbot & No Recoil)
 -- ============================================================
 RunService.RenderStepped:Connect(function(dt)
-    -- 1. Camera Aimbot Locking (Hold K)
     if CONFIG.Aimbot and UserInput:IsKeyDown(CONFIG.AimKey) then
         local target = getClosestTarget()
         if target then
@@ -397,7 +446,6 @@ RunService.RenderStepped:Connect(function(dt)
         end
     end
 
-    -- 2. No Recoil (Strips pitch kick)
     if CONFIG.NoRecoil then
         local rot = Camera.CFrame - Camera.CFrame.Position
         local rx, ry, rz = rot:ToEulerAnglesXYZ()
@@ -407,4 +455,4 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-print("[MINEHUB] Solara-compatible loaded. Hold [K] to aim, [RightShift] to toggle menu.")
+print("[MINEHUB] Ultimate loaded. Hold [K] to aim, [V] to nuke vehicle, [RightShift] to toggle menu.")
